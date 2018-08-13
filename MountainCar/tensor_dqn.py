@@ -19,7 +19,7 @@ class DeepQNetwork:
 
             # First layers of eval_net. collections which paramters used when update
             with tf.variable_scope('l1'):
-                w1 = tf.get_variable('w1', [self.n_feature, n_l1], initializer=w_initializer, collections=c_names)
+                w1 = tf.get_variable('w1', [self.n_features, n_l1], initializer=w_initializer, collections=c_names)
                 b1 = tf.get_variable('b1', [1, n_l1], initializer=b_initializer, collections=c_names)
                 l1 = tf.nn.relu(tf.matmul(self.s, w1) + b1)
             
@@ -55,7 +55,7 @@ class DeepQNetwork:
 
     def __init__(self, n_actions, n_features, learning_rate =0.01, reward_decay= 0.9, e_greedy=0.9, replace_target_iter=300, memory_size=500, batch_size=32, e_greedy_increment=None, output_graph=False):
         self.n_actions = n_actions
-        self.n_features = n_feature
+        self.n_features = n_features
         self.lr = learning_rate
         self.gamma = reward_decay
         self.epsilon_max = e_greedy
@@ -67,7 +67,7 @@ class DeepQNetwork:
 
         self.learn_step_counter = 0
 
-        self.memory = np.zeros((self.memory_size, n_feature*2+2))
+        self.memory = np.zeros((self.memory_size, n_features*2+2))
 
         self._build_net()
 
@@ -80,7 +80,7 @@ class DeepQNetwork:
         #oupt tensorboard fil
         if output_graph:
             tf.summary.FileWriter("logs/", self.sess.graph)
-
+        
         self.sess.run(tf.global_variables_initializer())
         #record cost change after showing plot
         self.cost_hist = [] 
@@ -99,10 +99,12 @@ class DeepQNetwork:
 
     def choose_action(self, observation):
         # collect all shape of observation (1, size_of_obs)
+        
         if np.random.uniform() < self.epsilon:
+            observation = observation.reshape(1,2)
             # let eval_net neural network generate all action value, and select max one
-            action_value = self.sees,run(self.q_eval, feed_dict={self.s: observation})
-            action = np.argmax(action_value)
+            actions_value = self.sess.run(self.q_eval, feed_dict={self.s: observation})
+            action = np.argmax(actions_value)
         else:
             action = np.random.randint(0, self.n_actions)
         return action
@@ -110,7 +112,7 @@ class DeepQNetwork:
     def learn(self):
         # check target_net has been changed or not
         if self.learn_step_counter % self.replace_target_iter == 0:
-            self.sees.run(self.replace_target_op)
+            self.sess.run(self.replace_target_op)
             print('\ntarget_params_replaced\n')
         #select batch in population
         if self.memory_counter > self.memory_size:
@@ -134,7 +136,7 @@ class DeepQNetwork:
 
         q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_next, axis=1)
         # back propragation
-        _, self.cost = self.sess.run([self._train_op, slef.loss],
+        _, self.cost = self.sess.run([self._train_op, self.loss],
                                      feed_dict={self.s: batch_memory[:,:self.n_features],
                                      self.q_target: q_target})
         # record cost error
@@ -143,7 +145,7 @@ class DeepQNetwork:
         self.epsilon = self.epsilon + self.epsilon_increment if self.epsilon < self.epsilon_max else self.epsilon_max
         self.learn_step_counter +=1
 
-    def plot_cost(slef):
+    def plot_cost(self):
         import matplotlib.pyplot as plt
         plt.plot(np.arange(len(self.cost_his)), self.cost_his)
         plt.ylabel('Cost')

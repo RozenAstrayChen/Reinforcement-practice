@@ -1,5 +1,5 @@
 import gym
-from RL_brain import DeepQNetwork
+from tensor_dqn import DeepQNetwork
 
 env = gym.make('MountainCar-v0')
 env = env.unwrapped
@@ -22,16 +22,17 @@ for i_episode in range(10):
     ep_r = 0
     while True:
         env.render()
-
+        #reshape
+    
         action = RL.choose_action(observation)
 
         observation_, reward, done, info = env.step(action)
-
+        
         position, velocity = observation_
 
         # 车开得越高 reward 越大
         reward = abs(position - (-0.5))
-
+        
         RL.store_transition(observation, action, reward, observation_)
 
         if total_steps > 1000:
