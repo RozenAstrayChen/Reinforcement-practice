@@ -4,34 +4,34 @@ import random
 import math
 from time import sleep
 
-#Initialize the "Cart-Pole" enviroment
+# Initialize the "Cart-Pole" enviroment
 env = gym.make('CartPole-v0')
 
 
-#Defining the environment related constants
+# Defining the environment related constants
 
 # Number of discrete states (bucket)` per state dimension
 NUM_BUCKETS = (1, 1, 6, 3)
 # Number of discrete actions
-NUM_ACTIONS = env.action_space.n #(left, right)
-#Bounds for each discrete state
+NUM_ACTIONS = env.action_space.n  # (left, right)
+# Bounds for each discrete state
 STATE_BOUNDS = list(zip(env.observation_space.low,
                         env.observation_space.high
                         ))
 STATE_BOUNDS[1] = [-0.5, 0.5]
-STATE_BOUNDS[3] = [-math.radians(50),math.radians(50)]
-#Index of action
+STATE_BOUNDS[3] = [-math.radians(50), math.radians(50)]
+# Index of action
 ACTION_INDEX = len(NUM_BUCKETS)
 
-## Creating a Q-Table for each state-action pair
+# Creating a Q-Table for each state-action pair
 ## (1, 1, 6, 3 + 2)
 q_table = np.zeros(NUM_BUCKETS + (NUM_ACTIONS,))
 
-## Learning related constants
+# Learning related constants
 MIN_EXPLORE_RATE = 0.01
 MIN_LEARNING_RATE = 0.1
 
-##Defining the simulation related constants
+# Defining the simulation related constants
 NUM_EPISODES = 1000
 MAX_T = 250
 STREAK_TO_END = 120
@@ -46,20 +46,24 @@ def read_module(name):
 
     return load_table
 
-def record_rate(episode,rate):
+
+def record_rate(episode, rate):
     fp = open("explore_rate.txt", "a")
     string = str(episode) + ":" + str(rate) + "\n"
     fp.write(string)
     fp.close()
 
+
 """[Summary]
     Simulate
 """
+
+
 def train_simulate(module):
 
     learn_table = module
 
-    ## Instantiating the learning related parameters
+    # Instantiating the learning related parameters
 
     learning_rate = get_learning_rate(0)
     explore_rate = get_explore_rate(0)
@@ -69,32 +73,32 @@ def train_simulate(module):
 
     for episode in range(NUM_EPISODES):
 
-        #Reset the enviroment
+        # Reset the enviroment
         obv = env.reset()
 
-        #the initial state
+        # the initial state
         state_0 = state_to_bucket(obv)
 
         for t in range(MAX_T):
             env.render()
 
-            #Select an action
+            # Select an action
             action = select_action(state_0, explore_rate, learn_table)
 
-            #Execute the action
+            # Execute the action
             obv, reward, done, _ = env.step(action)
 
-            #Observe the result
+            # Observe the result
             state = state_to_bucket(obv)
 
-            #Update the Q based on the result
+            # Update the Q based on the result
             best_q = np.amax(q_table[state])
-            #Algorithm,
+            # Algorithm,
             # l_rate( reward + Predict - Reality )
-            learn_table[state_0 + (action,)] += learning_rate * (reward + discount_factor*(best_q) - learn_table[state_0 + (action,)])
+            learn_table[state_0 + (action,)] += learning_rate * (reward +
+                                                                 discount_factor*(best_q) - learn_table[state_0 + (action,)])
 
-
-            #Setting up for the next iteration
+            # Setting up for the next iteration
             state_0 = state
 
             # Print data
@@ -111,14 +115,12 @@ def train_simulate(module):
 
                 print("")
 
-
-
         if int(episode) is 10:
-            np.save('10times.npy',learn_table)
+            np.save('10times.npy', learn_table)
             record_rate(10, explore_rate)
             sleep(0.25)
 
-        elif  int(episode) is 100:
+        elif int(episode) is 100:
             np.save('100times.npy', learn_table)
             record_rate(100, explore_rate)
             sleep(0.25)
@@ -153,37 +155,34 @@ def train_simulate(module):
             record_rate(500, explore_rate)
             sleep(0.25)
 
-
         # Update parameters
         explore_rate = get_explore_rate(episode)
         learning_rate = get_learning_rate(episode)
 
 
-
-def test_simulate(module,explore_rate):
+def test_simulate(module, explore_rate):
 
     testing_table = module
 
-    ## Instantiating the learning related parameters
-
+    # Instantiating the learning related parameters
 
     for episode in range(NUM_EPISODES):
-        #Reset the enviroment
+        # Reset the enviroment
         obv = env.reset()
 
-        #the initial state
+        # the initial state
         state_0 = state_to_bucket(obv)
 
         for t in range(MAX_T):
             env.render()
 
-            #Select_action
-            action = select_action(state_0, explore_rate,testing_table)
+            # Select_action
+            action = select_action(state_0, explore_rate, testing_table)
 
-            #Execute the action
+            # Execute the action
             obv, _, _, _ = env.step(action)
 
-            #Observe the result
+            # Observe the result
             state = state_to_bucket(obv)
 
             # Setting up for the next iteration
@@ -200,11 +199,7 @@ def test_simulate(module,explore_rate):
                 print("")
 
 
-
-
-
-
-def select_action(state, explore_rate,table):
+def select_action(state, explore_rate, table):
     # Select a random action
     if random.random() < explore_rate:
         action = env.action_space.sample()
@@ -217,8 +212,10 @@ def select_action(state, explore_rate,table):
 def get_explore_rate(t):
     return max(MIN_EXPLORE_RATE, min(1, 1.0 - math.log10((t+1)/25)))
 
+
 def get_learning_rate(t):
     return max(MIN_LEARNING_RATE, min(0.5, 1.0 - math.log10((t+1)/25)))
+
 
 def state_to_bucket(state):
     bucket_indice = []
@@ -236,17 +233,13 @@ def state_to_bucket(state):
         bucket_indice.append(bucket_index)
     return tuple(bucket_indice)
 
+
 if __name__ == "__main__":
 
+    # train_simulate(q_table)
 
-    #train_simulate(q_table)
-
-    test_simulate(read_module('500times.npy'),0.1)
+    test_simulate(read_module('500times.npy'), 0.1)
     #obv = env.reset()
-    #print(obv)
+    # print(obv)
 
-
-    #print(read_module('100times.npy'))
-
-
-
+    # print(read_module('100times.npy'))
