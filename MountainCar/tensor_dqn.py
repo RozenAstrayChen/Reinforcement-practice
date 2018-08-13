@@ -152,3 +152,11 @@ class DeepQNetwork:
         plt.xlabel('training steps')
         plt.show()
         
+    def save(self):
+        # 建立 saver 物件
+        saver = tf.train.Saver()
+        saver.save(self.sess, "model.ckpt")
+    def load(self):
+        saver = tf.train.Saver()
+        #with tf.Session() as sess:
+        saver.restore(self.sess, "model.ckpt")
