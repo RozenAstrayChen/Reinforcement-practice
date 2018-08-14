@@ -49,5 +49,5 @@ for i_episode in range(10):
 
         observation = observation_
         total_steps += 1
-RL.save()
+#RL.save()
 RL.plot_cost()

@@ -19,7 +19,9 @@ class DeepQNetwork:
 
             # First layers of eval_net. collections which paramters used when update
             with tf.variable_scope('l1'):
+                #weight
                 w1 = tf.get_variable('w1', [self.n_features, n_l1], initializer=w_initializer, collections=c_names)
+                #bias
                 b1 = tf.get_variable('b1', [1, n_l1], initializer=b_initializer, collections=c_names)
                 l1 = tf.nn.relu(tf.matmul(self.s, w1) + b1)
             
@@ -28,8 +30,14 @@ class DeepQNetwork:
                 w2 = tf.get_variable('w1', [n_l1, self.n_actions], initializer=w_initializer, collections=c_names)
                 b2 = tf.get_variable('b1', [1, self.n_actions], initializer= b_initializer, collections=c_names)
                 self.q_eval = tf.matmul(l1, w2) + b2
-        with tf.variable_scope('loss'): # error
+        '''
+        loss function
+        '''
+        with tf.variable_scope('loss'): # error  from q_target and q_eval
             self.loss = tf.reduce_mean(tf.squared_difference(self.q_target, self.q_eval))
+        '''
+        back propagation
+        '''
         with tf.variable_scope('train'): # gradinet descent
             self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
 
@@ -133,7 +141,7 @@ class DeepQNetwork:
         batch_index = np.arange(self.batch_size, dtype=np.int32)
         eval_act_index = batch_memory[:, self.n_features].astype(int)
         reward = batch_memory[:, self.n_features + 1]
-
+        # Q learning
         q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_next, axis=1)
         # back propragation
         _, self.cost = self.sess.run([self._train_op, self.loss],
@@ -147,7 +155,7 @@ class DeepQNetwork:
 
     def plot_cost(self):
         import matplotlib.pyplot as plt
-        plt.plot(np.arange(len(self.cost_his)), self.cost_his)
+        plt.plot(np.arange(len(self.cost_hist)), self.cost_hist)
         plt.ylabel('Cost')
         plt.xlabel('training steps')
         plt.show()
