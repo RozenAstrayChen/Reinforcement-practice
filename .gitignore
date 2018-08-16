@@ -3,3 +3,4 @@
 .idea/*
 venv/*
 Untitled Diagram.xml
+__pycache__/*
