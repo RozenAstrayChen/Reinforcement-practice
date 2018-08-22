@@ -16,8 +16,8 @@ class DeepQNetwork:
         with tf.variable_scope('eval_net'):
             # c_names(collections_names) is paramters when update target_net
             c_names, n_l1, w_initializer, b_initializer = \
-                ['eval_net_params', tf.GraphKeys.GLOBAL_VARIABLES], 10, \
-                    tf.random_normal_initializer(0., 0.3), tf.constant_initializer(0.1) # config of layers
+                ['eval_net_params', tf.GraphKeys.GLOBAL_VARIABLES], 100, \
+                tf.random_normal_initializer(0., 0.3), tf.constant_initializer(0.1)  # config of layers
 
             # First layers of eval_net. collections which paramters used when update
             with tf.variable_scope('l1'):
@@ -31,7 +31,8 @@ class DeepQNetwork:
                     'b1', [1, n_l1],
                     initializer=b_initializer,
                     collections=c_names)
-                l1 = tf.nn.relu(tf.matmul(self.s, w1) + b1)
+                # l1 = tf.nn.relu(tf.matmul(self.s, w1) + b1)
+                l1 = tf.matmul(self.s, w1) + b1
 
             # Second layers of eval_net. collections which paramters used when update
             with tf.variable_scope('l2'):
@@ -75,7 +76,8 @@ class DeepQNetwork:
                     'b1', [1, n_l1],
                     initializer=b_initializer,
                     collections=c_names)
-                l1 = tf.nn.relu(tf.matmul(self.s_, w1) + b1)
+                # l1 = tf.nn.relu(tf.matmul(self.s_, w1) + b1)
+                l1 = tf.matmul(self.s_, w1) + b1
 
             # Second layers of target_net. collections which paramters used when update
             with tf.variable_scope('l2'):
@@ -108,7 +110,7 @@ class DeepQNetwork:
         self.replace_target_iter = replace_target_iter  # change target_net step
         self.memory_size = memory_size  # memory size
         self.batch_size = batch_size
-        self.epsilon_increment = e_greedy_increment  #epsilon num
+        self.epsilon_increment = e_greedy_increment  # epsilon num
         self.epsilon = 0 if e_greedy_increment is not None else self.epsilon_max  # Enable explore mode, and decrease expolore step
 
         self.learn_step_counter = 0
@@ -127,12 +129,12 @@ class DeepQNetwork:
         ]
 
         self.sess = tf.Session()
-        #oupt tensorboard fil
+        # oupt tensorboard fil
         if output_graph:
             tf.summary.FileWriter("logs/", self.sess.graph)
 
         self.sess.run(tf.global_variables_initializer())
-        #record cost change after showing plot
+        # record cost change after showing plot
         self.cost_hist = []
 
     def store_transition(self, s, a, r, s_):
@@ -163,7 +165,7 @@ class DeepQNetwork:
         if self.learn_step_counter % self.replace_target_iter == 0:
             self.sess.run(self.replace_target_op)
             print('\ntarget_params_replaced\n')
-        #select batch in population
+        # select batch in population
         if self.memory_counter > self.memory_size:
             sampe_index = np.random.choice(
                 self.memory_size, size=self.batch_size)
@@ -179,14 +181,18 @@ class DeepQNetwork:
                 self.s_: batch_memory[:, -self.n_features:],
                 self.s: batch_memory[:, :self.n_features]
             })
+        # print('q_next = ',q_next,'\nq_eval = ',q_eval)
         # important
         q_target = q_eval.copy()
         batch_index = np.arange(self.batch_size, dtype=np.int32)
         eval_act_index = batch_memory[:, self.n_features].astype(int)
         reward = batch_memory[:, self.n_features + 1]
+        # print('batch_index = ',batch_index)
+        # print('eval_act_index = ', eval_act_index)
         # Q learning
         q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(
             q_next, axis=1)
+        # print('q_target = ',q_target[batch_index, eval_act_index])
         # back propragation
         _, self.cost = self.sess.run(
             [self._train_op, self.loss],
@@ -194,9 +200,10 @@ class DeepQNetwork:
                 self.s: batch_memory[:, :self.n_features],
                 self.q_target: q_target
             })
+        # print('cost = ',self.cost)
         # record cost error
         self.cost_hist.append(self.cost)
-        #decrease epsilon
+        # decrease epsilon
         self.epsilon = self.epsilon + self.epsilon_increment if self.epsilon < self.epsilon_max else self.epsilon_max
         self.learn_step_counter += 1
 
@@ -214,5 +221,5 @@ class DeepQNetwork:
 
     def load(self):
         saver = tf.train.Saver()
-        #with tf.Session() as sess:
+        # with tf.Session() as sess:
         saver.restore(self.sess, "model.ckpt")
