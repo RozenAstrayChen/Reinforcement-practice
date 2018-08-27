@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+import tensorflow.logging as logging
 import random
 
 
@@ -43,6 +44,9 @@ class Model:
 
     def train_batch(self, sess, x_batch, y_batch):
         sess.run(self._optimizer, feed_dict={self._states: x_batch, self._q_s_a: y_batch})
+
+    def print_num_of_total_parameters(self):
+        pass
 
 class Memory:
     def __init__(self, max_memory):

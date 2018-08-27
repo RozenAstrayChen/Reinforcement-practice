@@ -92,3 +92,5 @@ class GameRunner:
             y[i] = current_q
         self._model.train_batch(self._sess, x, y)
 
+        self._model.print_num_of_total_parameters()
+

@@ -33,12 +33,14 @@ class Agent:
                 # Advance the game to the next frame based on the action.
                 # Reward is 1 for every frame the pole survived
                 next_state, reward, done, _ = self.env.step(action)
+                rewards += reward
+
                 next_state = np.reshape(next_state, [1, 4])
                 # Remember the previous state, action, reward, and done
-                self.agent.transition(state, action, reward, next_state, done)
+                self.agent.transition(state, action, rewards, next_state, done)
                 # make next_state the new current state for the next frame.
                 state = next_state
-                rewards += reward
+                
                 # done becomes True when the game ends
                 # ex) The agent drops the pole
                 '''
