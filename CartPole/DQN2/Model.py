@@ -49,10 +49,9 @@ class DQNAgent:
         self.actions.append(action)
         return action
     def replay(self, batch_size):
-        if batch_size < len(self.memory):
-            minibatch = random.sample(self.memory, batch_size)
-        else:
-            minibatch = random.sample(self.memory, len(self.memory))
+        
+        minibatch = random.sample(self.memory, batch_size)
+       
 
         for state, action, reward, state_, done in minibatch:
             target = reward
