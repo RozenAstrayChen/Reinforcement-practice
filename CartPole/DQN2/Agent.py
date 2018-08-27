@@ -52,7 +52,7 @@ class Agent:
             print("episode: {}/{}, score: {}"
                   .format(e, episodes, rewards))
             self.agent.replay(32)
-            
+
         self.final_position(self.agent.actions)
         self.agent.save()
     def test(self):
