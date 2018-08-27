@@ -7,6 +7,7 @@ import pandas as pd
 class Agent:
     def __init__(self,env_name='CartPole-v0'):
         self.env = gym.make(env_name)
+        self.batch_size = 32
         num_states = self.env.observation_space.shape[0]
         num_actions = self.env.action_space.n
 
@@ -43,17 +44,18 @@ class Agent:
                 
                 # done becomes True when the game ends
                 # ex) The agent drops the pole
-                '''
+                
                 if done:
                     # print the score and break out of the loop
                     print("episode: {}/{}, score: {}"
                           .format(e, episodes, time_t))
                     break
-                '''
+                if len(self.agent.memory) > self.batch_size:
+                    self.agent.replay(self.batch_size)
+                
             # train the agent with the experience of the episode
             print("episode: {}/{}, score: {}"
                   .format(e, episodes, rewards))
-            self.agent.replay(32)
             
         self.final_position(self.agent.actions)
         self.agent.save()
@@ -74,12 +76,12 @@ class Agent:
 
                 state = next_state
 
-                '''
+                
                 if done:
                     # print the score and break out of the loop
                     print("game over")
                     break
-                '''
+                
 
     def final_position(self,positions):
         import time
