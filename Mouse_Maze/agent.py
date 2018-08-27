@@ -10,7 +10,7 @@ class Agent:
         self.gamma = 0.9
         self.decay =0.9
         self.decay_max = 0.9
-        self.decay_min = 0.1
+        self.decay_min = 0.01
         self.env = Env.env()
         self.table = self.build_table(6,4)
         random.seed(1)
@@ -18,14 +18,15 @@ class Agent:
     def random_go(self):
         for i in range(0, 1):
             state = self.env.reset()
+            self.env.show(state)
             for j in range(0,10):
                 action = random.randint(0,3)
-                print('-----action = ',action,'-----------')
+                # print('-----action = ',action,'-----------')
                 state, reward , state_, done = self.env.step(action)
-                print('state = ', state)
-                print('reward = ', reward)
-                print('next_state = ', state_)
-                print('done = ', done)
+                # print('state = ', state)
+                # print('reward = ', reward)
+                # print('next_state = ', state_)
+                # print('done = ', done)
                 if done:
                     print('-------------game over--------------')
                     break
@@ -51,7 +52,7 @@ class Agent:
         '''
         #print('table is  ',self.table[s_],'\n predict =',np.argmax(self.table[s_]))
         self.table[s][a] += self.table[s][a] + self.gamma *(( r + self.decay * np.argmax(np.argmax(self.table[s_]))) - self.table[s][a])
-        print('q eval is ',self.table[s][a])
+        # print('q eval is ',self.table[s][a])
 
         if self.decay > self.decay_min:
             self.decay = self.decay * 0.99

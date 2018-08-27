@@ -80,3 +80,23 @@ class env:
         maze[5] = self.big_chess
 
         return maze
+
+    def show(self,s):
+        print('███████')
+        for i in range(0,3):
+            print('|',end='')
+            if i == s:
+                print('X',end='')
+            else:
+                print(' ',end='')
+        print('|')
+        print('███████')
+        for i in range(3,6):
+            print('|', end='')
+            if i == s:
+                print('X', end='')
+            else:
+                print(' ', end='')
+        print('|')
+        print('███████')
+
