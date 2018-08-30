@@ -1,5 +1,5 @@
 import gym
-from CartPole.DQN2.Model import *
+from Model import *
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
