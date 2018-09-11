@@ -1,4 +1,4 @@
-import CartPole.DQN.dqn as dqn
+import dqn as dqn
 import gym
 import numpy as np
 
