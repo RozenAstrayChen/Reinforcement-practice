@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from config import *
 import numpy as np
+from random import sample
 '''
 The memory is store experenice, we need collect and sample which is in order to training 
 '''

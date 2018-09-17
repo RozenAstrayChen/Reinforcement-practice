@@ -12,8 +12,10 @@ resolution = (30, 45)
 replay_memory_size = 10000
 # learning hyperparameters
 learning_rate = 0.00025
-discount_factor = 0.99
+gamma = 0.99
 epsilon = 0.99
+dec_eps = 0.9
+min_eps = 0.1
 epochs = 20
 learning_step_per_epoch = 2000
 # NN
