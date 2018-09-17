@@ -4,8 +4,7 @@ import numpy as np
 from config import *
 
 
-
-def init_doom(scenarios=config_file_path,visable=False):
+def init_doom(scenarios=config_file_path, visable=False):
     print('Initializing doom...')
     game = DoomGame()
     game.load_config(scenarios)
@@ -17,6 +16,7 @@ def init_doom(scenarios=config_file_path,visable=False):
     print('Doom initialized')
     return game
 
+
 def test_env(game):
     print('Test start')
     temp_epochs = 10
@@ -25,5 +25,3 @@ def test_env(game):
         while not game.is_episode_finished():
             pass
     game.close()
-    
-    

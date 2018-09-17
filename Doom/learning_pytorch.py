@@ -48,8 +48,10 @@ skip_learning = False
 
 # Configuration file path
 config_file_path = "./scenarios/simpler_basic.cfg"
+
 # config_file_path = "../../scenarios/rocket_basic.cfg"
 # config_file_path = "../../scenarios/basic.cfg"
+
 
 # Converts and down-samples the input image
 def preprocess(img):
@@ -103,6 +105,7 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         return self.fc2(x)
 
+
 criterion = nn.MSELoss()
 
 
@@ -118,12 +121,14 @@ def learn(s1, target_q):
     optimizer.step()
     return loss
 
+
 def get_q_values(state):
     print(state.shape)
     state = torch.from_numpy(state)
     state = Variable(state)
     #print(state.shape)
     return model(state)
+
 
 def get_best_action(state):
     q = get_q_values(state)
@@ -145,7 +150,8 @@ def learn_from_memory():
         target_q = get_q_values(s1).data.numpy()
         # target differs from q only for the selected action. The following means:
         # target_Q(s,a) = r + gamma * max Q(s2,_) if isterminal else r
-        target_q[np.arange(target_q.shape[0]), a] = r + discount_factor * (1 - isterminal) * q2
+        target_q[np.arange(target_q.shape[0]),
+                 a] = r + discount_factor * (1 - isterminal) * q2
         learn(s1, target_q)
 
 
@@ -178,7 +184,7 @@ def perform_learning_step(epoch):
     else:
         # Choose the best action according to the network.
         s1 = s1.reshape([1, 1, resolution[0], resolution[1]])
-        print('shape is ',s1.shape)
+        print('shape is ', s1.shape)
         a = get_best_action(s1)
     reward = game.make_action(actions[a], frame_repeat)
 
@@ -221,7 +227,7 @@ if __name__ == '__main__':
         model = torch.load(model_savefile)
     else:
         model = Net(len(actions))
-    
+
     optimizer = torch.optim.SGD(model.parameters(), learning_rate)
 
     print("Starting the training!")
@@ -264,14 +270,17 @@ if __name__ == '__main__':
                 test_scores.append(r)
 
             test_scores = np.array(test_scores)
-            print("Results: mean: %.1f +/- %.1f," % (
-                test_scores.mean(), test_scores.std()), "min: %.1f" % test_scores.min(),
-                  "max: %.1f" % test_scores.max())
+            print(
+                "Results: mean: %.1f +/- %.1f," % (test_scores.mean(),
+                                                   test_scores.std()),
+                "min: %.1f" % test_scores.min(),
+                "max: %.1f" % test_scores.max())
 
             print("Saving the network weigths to:", model_savefile)
             torch.save(model, model_savefile)
 
-            print("Total elapsed time: %.2f minutes" % ((time() - time_start) / 60.0))
+            print("Total elapsed time: %.2f minutes" % (
+                (time() - time_start) / 60.0))
 
     game.close()
     print("======================================")

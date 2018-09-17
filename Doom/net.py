@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+
 class Net(nn.Module):
     def __init__(self, available_actions_count):
         super(Net, self).__init__()
@@ -14,7 +15,7 @@ class Net(nn.Module):
         # out is (8,4,6)
         self.fc1 = nn.Linear(192, 128)
         self.fc2 = nn.Linear(128, available_actions_count)
-        
+
     def forward(self, x):
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
