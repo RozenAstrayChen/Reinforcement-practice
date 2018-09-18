@@ -1,0 +1,36 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+Agent	Agent.py	/^class Agent:$/;"	c
+Agent	main.py	/^import CartPole.DQN2.Agent as Agent$/;"	i
+CartPole	main.py	/^import CartPole.DQN2.Agent as Agent$/;"	i
+DQN2	main.py	/^import CartPole.DQN2.Agent as Agent$/;"	i
+DQNAgent	Model.py	/^class DQNAgent:$/;"	c
+__init__	Agent.py	/^    def __init__(self,env_name='CartPole-v0'):$/;"	m	class:Agent
+__init__	Model.py	/^    def __init__(self, num_states, num_actions):$/;"	m	class:DQNAgent
+agent	main.py	/^agent = Agent.Agent()$/;"	v
+build_mode	Model.py	/^    def build_mode(self):$/;"	m	class:DQNAgent
+choose	Model.py	/^    def choose(self, state):$/;"	m	class:DQNAgent
+collections	Model.py	/^import collections$/;"	i
+final_position	Agent.py	/^    def final_position(self,positions):$/;"	m	class:Agent
+gym	Agent.py	/^import gym$/;"	i
+ks	Model.py	/^import tensorflow.keras as ks$/;"	i
+load	Model.py	/^    def load(self):$/;"	m	class:DQNAgent
+load_model	Model.py	/^from tensorflow.keras.models import load_model,save_model$/;"	i
+matplotlib	Agent.py	/^import matplotlib.pyplot as plt$/;"	i
+np	Agent.py	/^import numpy as np$/;"	i
+np	Model.py	/^import numpy as np$/;"	i
+pd	Agent.py	/^import pandas as pd$/;"	i
+plt	Agent.py	/^import matplotlib.pyplot as plt$/;"	i
+random	Model.py	/^import random$/;"	i
+replay	Model.py	/^    def replay(self, batch_size):$/;"	m	class:DQNAgent
+save	Model.py	/^    def save(self):$/;"	m	class:DQNAgent
+save_model	Model.py	/^from tensorflow.keras.models import load_model,save_model$/;"	i
+tensorflow	Model.py	/^import tensorflow.keras as ks$/;"	i
+test	Agent.py	/^    def test(self):$/;"	m	class:Agent
+time	Agent.py	/^        import time$/;"	i
+train	Agent.py	/^    def train(self):$/;"	m	class:Agent
+transition	Model.py	/^    def transition(self, state, action, reward, state_, done):$/;"	m	class:DQNAgent
