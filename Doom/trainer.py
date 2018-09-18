@@ -7,10 +7,12 @@ import itertools as it
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
+from time import time, sleep
 import skimage.color, skimage.transform
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 from tqdm import trange
+import matplotlib.pyplot as plt
 
 print("GPU is ->", torch.cuda.is_available())
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -19,7 +21,7 @@ print(torch.cuda.get_device_name(0))
 
 class Trainer:
     def __init__(self):
-        self.game = init_doom(visable=True)
+        self.game = init_doom(visable=False)
         # find game available action
         n = self.game.get_available_buttons_size()
         actions = [list(a) for a in it.product([0, 1], repeat=n)]
@@ -35,11 +37,16 @@ class Trainer:
         self.memory = ReplayMemory(replay_memory_size)
 
     def perform_learning_step(self):
+        collect_scores = []
         for epoch in range(epochs):
             print("\nEpoch %d\n-------" % (epoch + 1))
+            train_scores = []
+            train_episodes_finished = 0
             print("Training...")
             self.game.new_episode()
-            while not self.game.is_episode_finished():
+            # trange show the long process text
+            for learning_step in trange(learning_step_per_epoch, leave=False):
+                #while not self.game.is_episode_finished():
                 s1 = self.preprocess(self.game.get_state().screen_buffer)
                 s1 = s1.reshape([1, 1, resolution[0], resolution[1]])
 
@@ -57,10 +64,80 @@ class Trainer:
 
                 self.learn_from_memory()
 
-            if self.game.is_episode_finished():
-                score = self.game.get_total_reward()
-                print('score = ', score)
+                if self.game.is_episode_finished():
+                    score = self.game.get_total_reward()
+                    train_scores.append(score)
+                    collect_scores.append(score)
+                    train_episodes_finished += 1
+                    # next start
+                    self.game.new_episode()
+            print("%d training episodes played." % train_episodes_finished)
+            train_scores = np.array(train_scores)
+
+            print("Results: mean: %.1f +/- %.1f," % (train_scores.mean(), train_scores.std()), \
+                  "min: %.1f," % train_scores.min(), "max: %.1f," % train_scores.max())
+        '''
+        loop over
+        '''
+        self.show_score(collect_scores)
+        self.save_model()
+
         self.game.close()
+
+    '''
+    test step
+    '''
+
+    def watch_model(self):
+        self.load_model()
+        self.game = init_doom(visable=True)
+        for _ in range(watch_step_per_epoch):
+            self.game.new_episode()
+            while not self.game.is_episode_finished():
+                state = self.preprocess(self.game.get_state().screen_buffer)
+                state = state.reshape([1, 1, resolution[0], resolution[1]])
+                action_index = self.choose_action(state)
+
+                # Instead of make_action(a, frame_repeat) in order to make the animation smooth
+                self.game.set_action(self.action_available[action_index])
+                for _ in range(frame_repeat):
+                    self.game.advance_action()
+            sleep(1.0)
+            score = self.game.get_total_reward()
+            print("Total score: ", score)
+
+        self.game.close()
+
+    '''
+    save model
+    '''
+
+    def save_model(self):
+        torch.save(self.model, model_savefile)
+
+    '''
+    load model
+    '''
+
+    def load_model(self):
+        print("Loading model from: ", model_savefile)
+        self.model = torch.load(model_savefile)
+
+    '''
+    show score
+    '''
+
+    def show_score(self, scores):
+        import time
+        localtime = time.localtime()
+        timeString = time.strftime("%m%d%H", localtime)
+        timeString = './' + 'score_' + str(timeString) + '.jpg'
+
+        plt.plot(scores)
+        plt.xlabel('episodes')
+        plt.ylabel('total rewads')
+        plt.savefig(timeString)
+        plt.show()
 
     '''
     Subsampling image and convert to numpy types
@@ -139,10 +216,11 @@ class Trainer:
     '''
 
     def exploration_rate(self):
-        self.eps = self.eps * dec_eps
-        if self.eps < min_eps:
-            self.eps = min_eps
+
+        if self.eps > min_eps:
+            self.eps *= dec_eps
 
 
 trainer = Trainer()
 trainer.perform_learning_step()
+trainer.watch_model()
