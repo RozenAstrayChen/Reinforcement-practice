@@ -1,7 +1,7 @@
 
 import gym
-import MountainCar.value.another.Model as nn
-import MountainCar.value.another.GameRunner as agent
+import Model as nn
+import GameRunner as agent
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import pandas as pd

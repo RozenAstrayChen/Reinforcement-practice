@@ -1,5 +1,5 @@
 import gym
-from CartPole.DQN2.Model import *
+from Model import *
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -56,7 +56,7 @@ class Agent:
             # train the agent with the experience of the episode
             print("episode: {}/{}, score: {}"
                   .format(e, episodes, rewards))
-            
+
         self.final_position(self.agent.actions)
         self.agent.save()
     def test(self):
@@ -99,6 +99,8 @@ class Agent:
         plt.title('Final Position - Modified.jpg')
         plt.savefig(timeString)
         plt.show()
+
+
 
 
 

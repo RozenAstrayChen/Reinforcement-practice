@@ -1,4 +1,5 @@
-import CartPole.DQN2.Agent as Agent
+#import CartPole.DQN2.Agent as Agent
+import Agent as Agent
 
 agent = Agent.Agent()
 

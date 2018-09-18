@@ -1,8 +1,9 @@
-import tensorflow.keras as ks
+#import tensorflow.python.keras as ks
+from tensorflow.python import keras as ks
 import collections
 import numpy as np
 import random
-from tensorflow.keras.models import load_model,save_model
+from tensorflow.python.keras.models import load_model,save_model
 
 
 class DQNAgent:
@@ -12,8 +13,8 @@ class DQNAgent:
         self.transition_max = 2000
 
         self.memory = collections.deque(maxlen=self.transition_max)
-        self.gamma = 0.95  # discount factor
         self.epsilon = 1.0  # exploration rate
+        self.gamma = 0.95  # discount factor
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
         self.learn_rate = 0.001
