@@ -4,8 +4,12 @@ This file is config all need hyperparameters
 """
 # scenarios path
 config_file_path = "./scenarios/simpler_basic.cfg"
+config_file_path2 = "./scenarios/deadly_corridor.cfg"
+config_file_path3 = "./scenarios/defend_the_line.cfg"
+config_file_path4 = "./scenarios/deadly_corridor.cfg"
 # model save
-model_savefile = "./model-doom.pth"
+model_savefile = "model-doom.pth"
+modle2_savefile = "./model4-doom.pth"
 #  images size
 resolution = (30, 45)
 # memory size

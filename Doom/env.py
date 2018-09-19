@@ -12,6 +12,8 @@ def init_doom(scenarios=config_file_path, visable=False):
     game.set_mode(Mode.PLAYER)
     game.set_screen_format(ScreenFormat.GRAY8)
     game.set_screen_resolution(ScreenResolution.RES_640X480)
+    # 06
+    game.set_doom_map('map01')
     game.init()
     print('Doom initialized')
     return game
