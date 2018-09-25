@@ -109,11 +109,14 @@ class Trainer:
                 state = self.preprocess(self.game.get_state().screen_buffer)
                 state = state.reshape([1, 1, resolution[0], resolution[1]])
                 action_index = self.choose_action(state,watch_flag=True)
-
+                
                 # Instead of make_action(a, frame_repeat) in order to make the animation smooth
                 self.game.set_action(self.action_available[action_index])
+                
                 for _ in range(frame_repeat):
-                    self.game.advance_action()
+                    reward = self.game.advance_action()
+                
+                #reward = self.game.make_action(self.action_available[action_index])
             sleep(1.0)
             score = self.game.get_total_reward()
             print("Total score: ", score)
