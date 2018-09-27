@@ -1,7 +1,4 @@
-from env import *
-from config import *
-from memory import *
-from net import *
+
 from random import sample
 import itertools as it
 import torch
@@ -14,17 +11,21 @@ from torchvision import datasets, transforms
 from torch.autograd import Variable
 from tqdm import trange
 import matplotlib.pyplot as plt
-import cv2
 '''
 my tools
 '''
+from env import *
+from config import *
+from memory import *
+from net import *
+from process import Process
 from tools.visual import *
 print("GPU is ->", torch.cuda.is_available())
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(torch.cuda.get_device_name(0))
 
 
-class Trainer():
+class Trainer(Process):
     def __init__(self):
         self.game = init_doom(visable=False)
         # find game available action
@@ -115,7 +116,7 @@ class Trainer():
             self.game.new_episode()
             while not self.game.is_episode_finished():
                 state = self.preprocess(self.game.get_state().screen_buffer)
-                state = state.reshape([1, 1, resolution[0], resolution[1]])
+                state = state.reshape([1, 3, resolution[0], resolution[1]])
 
                 action_index = self.choose_action(state, watch_flag=True)
                 # Instead of make_action(a, frame_repeat) in order to make the animation smooth
@@ -160,55 +161,8 @@ class Trainer():
         print("Loading model from: ", current_name)
         self.model = torch.load(current_name)
 
-    '''
-    show score
-    '''
+    
 
-    def show_score(self, scores, num):
-        import time
-        localtime = time.localtime()
-        timeString = time.strftime("%m%d%H", localtime)
-        timeString = './' + str(num) + 'score_' + str(timeString) + '.jpg'
-
-        plt.plot(scores)
-        plt.xlabel('episodes')
-        plt.ylabel('rewads')
-        plt.savefig(timeString)
-        plt.show()
-
-    '''
-    show mean,min,max score
-    '''
-
-    def total_score(self, means, mins, maxs):
-        name = './' + 'total' + '.jpg'
-        plt.plot(means)
-        plt.plot(mins)
-        plt.plot(maxs)
-        plt.xlabel('episodes')
-        plt.ylabel('rewards')
-        plt.legend(['mean', 'min', 'max'], loc='upper left')
-        plt.savefig(name)
-        plt.show()
-
-    '''
-    Subsampling image and convert to numpy types
-    '''
-
-    def preprocess(self, frame):
-        #print('show shape',frame.shape)
-        # Greyscale frame already done in our vizdoom config
-        # x = np.mean(frame,-1)
-
-        # Crop the screen (remove the roof because it contains no information)
-        #cropped_frame = frame[30:-10,30:-30]
-        # Normalize Pixel Values
-        normalized_frame = frame / 255.0
-        #plt.imshow(frame,cmap='gray')
-        #plt.show()
-        preprocessed_frame = skimage.transform.resize(frame, resolution)
-        normalized_frame = preprocessed_frame.astype(np.float32)
-        return normalized_frame
 
     '''
     bp using
@@ -288,33 +242,7 @@ class Trainer():
             #print('eps == ' ,self.eps,'action ==',action)
             return action
 
-    def plot_kernels(self, tensor, layer, num_cols=8, num_rows=6):
-        if not tensor.ndim == 4:
-            raise Exception("assumes a 4D tensor")
-        num_kernels = tensor.shape[1]
-
-        plt.figure(figsize=(num_cols * 2, num_cols * 2))
-        for i in range(num_rows, -1, -1):
-            for j in range(num_cols, 0, -1):
-
-                #print('i=', i,'j=', j,'\n', 'i*j=',j+(i*4))
-                plt.subplot(num_cols, num_rows, j + (i * 4))
-                plt.imshow(tensor[0][j], cmap='gray')
-
-            #plt.imshow(tensor[0][i],cmap='gray')
-            #plt.show()
-        plt.savefig('./' + layer + '.jpg')
-        plt.show()
-
-    '''
-    see train
-    '''
-
-    def plot_grad(self, saliency):
-
-        plt.imshow(np.abs(saliency[0]), cmap='gray')
-        #plt.savefig('./'+'saliency'+'.jpg')
-        plt.show()
+    
 
     def got_feature(self, state):
         print('-----------split-----------')
@@ -370,7 +298,7 @@ class Trainer():
 
 
 trainer = Trainer()
-#trainer.perform_learning_step(load=False,model=2,iterators=1)
-#trainer.watch_model(2)
-trainer.visualization_fliter(1)
+#trainer.perform_learning_step(load=False,iterators=3)
+trainer.watch_model(3)
+#trainer.visualization_fliter(1)
 #plot_kernels(trainer.model.conv1)
