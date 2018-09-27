@@ -6,12 +6,16 @@ This file is config all need hyperparameters
 config_file_path = "./scenarios/simpler_basic.cfg"
 config_file_path2 = "./scenarios/deadly_corridor.cfg"
 config_file_path3 = "./scenarios/defend_the_line.cfg"
-config_file_path4 = "./scenarios/deadly_corridor.cfg"
+config_file_path4 = "./scenarios/defend_the_center.cfg"
 # model save
 model_savefile = "model-doom.pth"
 modle2_savefile = "./model4-doom.pth"
 #  images size
-resolution = (30, 45)
+'''
+in first basic wad i using 30,45
+in second map, i using origin pixel size
+'''
+resolution = (60, 108)
 # memory size
 replay_memory_size = 10000
 # learning hyperparameters
