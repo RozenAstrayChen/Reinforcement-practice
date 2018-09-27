@@ -222,5 +222,5 @@ class Trainer:
 
 
 trainer = Trainer()
-trainer.perform_learning_step()
+#trainer.perform_learning_step()
 trainer.watch_model()
