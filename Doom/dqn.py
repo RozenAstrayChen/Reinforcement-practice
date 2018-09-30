@@ -1,4 +1,3 @@
-
 from random import sample
 import itertools as it
 import torch
@@ -25,7 +24,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(torch.cuda.get_device_name(0))
 
 
-class Trainer(Process):
+class DQN(Process):
     def __init__(self):
         self.game = init_doom(visable=False)
         # find game available action
@@ -297,8 +296,8 @@ class Trainer(Process):
             self.eps *= dec_eps
 
 
-trainer = Trainer()
-#trainer.perform_learning_step(load=False,iterators=3)
-trainer.watch_model(3)
+trainer = DQN()
+trainer.perform_learning_step(load=False,iterators=3)
+#trainer.watch_model(3)
 #trainer.visualization_fliter(1)
 #plot_kernels(trainer.model.conv1)

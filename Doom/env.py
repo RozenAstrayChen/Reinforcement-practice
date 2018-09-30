@@ -4,7 +4,7 @@ import numpy as np
 from config import *
 
 
-def init_doom(scenarios=config_file_path4, visable=False):
+def init_doom(scenarios=config_file_path, visable=False):
     print('Initializing doom...')
     game = DoomGame()
     game.load_config(scenarios)

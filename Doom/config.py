@@ -19,7 +19,7 @@ resolution = (60, 108)
 # memory size
 replay_memory_size = 10000
 # learning hyperparameters
-learning_rate = 0.00025
+learning_rate = 0.00005
 gamma = 0.99
 epsilon = 1
 dec_eps = 0.995

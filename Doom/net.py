@@ -18,8 +18,14 @@ class Net(nn.Module):
         self.fc2 = nn.Linear(512, available_actions_count)
 
     def forward(self, x):
+        
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = x.view(-1, 4608)
         x = F.relu(self.fc1(x))
-        return self.fc2(x)
+       
+        #return self.fc2(x)
+        
+        return F.sigmoid(self.fc2(x))
+        
+        
