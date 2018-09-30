@@ -1,6 +1,7 @@
 import skimage.color, skimage.transform
 from config import *
 import numpy as np
+import matplotlib.pyplot as plt
 # -*- coding: utf-8 -*-
 '''
 this is the basic object which is process some chores
@@ -51,7 +52,7 @@ class Process:
         # Crop the screen (remove the roof because it contains no information)
         #cropped_frame = frame[30:-10,30:-30]
         # Normalize Pixel Values
-        normalized_frame = frame / 255.0
+        #normalized_frame = frame / 255.0
         #plt.imshow(frame,cmap='gray')
         #plt.show()
         preprocessed_frame = skimage.transform.resize(frame, resolution)

@@ -16,7 +16,7 @@ my tools
 from env import *
 from config import *
 from memory import *
-from net import *
+from net.q_net import Net
 from process import Process
 from tools.visual import *
 print("GPU is ->", torch.cuda.is_available())
@@ -29,7 +29,8 @@ class DQN(Process):
         self.game = init_doom(visable=False)
         # find game available action
         n = self.game.get_available_buttons_size()
-        actions = [list(a) for a in it.product([0, 1], repeat=n)]
+        #actions = [list(a) for a in it.product([0, 1], repeat=n)]
+        actions = np.identity(3,dtype=int).tolist()
         self.action_available = actions
         #self.model = Net(len(actions)).to(device)
         self.model = Net(len(actions)).to(device)
@@ -63,7 +64,7 @@ class DQN(Process):
                         learning_step_per_epoch, leave=False):
                     #while not self.game.is_episode_finished():
                     s1 = self.preprocess(self.game.get_state().screen_buffer)
-                    s1 = s1.reshape([1, 3, resolution[0], resolution[1]])
+                    s1 = s1.reshape([1, 1, resolution[0], resolution[1]])
                     action_index = self.choose_action(s1)
                     reward = self.game.make_action(
                         self.action_available[action_index], frame_repeat)
@@ -72,7 +73,7 @@ class DQN(Process):
                     if not isterminal:
                         s2 = self.preprocess(self.game.get_state()
                                              .screen_buffer)
-                        s2 = s2.reshape([1, 3, resolution[0], resolution[1]])
+                        s2 = s2.reshape([1, 1, resolution[0], resolution[1]])
                     else:
                         s2 = None
 
@@ -115,7 +116,7 @@ class DQN(Process):
             self.game.new_episode()
             while not self.game.is_episode_finished():
                 state = self.preprocess(self.game.get_state().screen_buffer)
-                state = state.reshape([1, 3, resolution[0], resolution[1]])
+                state = state.reshape([1, 1, resolution[0], resolution[1]])
 
                 action_index = self.choose_action(state, watch_flag=True)
                 # Instead of make_action(a, frame_repeat) in order to make the animation smooth
@@ -137,7 +138,7 @@ class DQN(Process):
         self.game.new_episode()
 
         state = self.preprocess(self.game.get_state().screen_buffer)
-        state = state.reshape([1, 3, resolution[0], resolution[1]])
+        state = state.reshape([1, 1, resolution[0], resolution[1]])
 
         action_index = self.choose_action(state, watch_flag=True)
         self.got_feature(state)
@@ -245,8 +246,7 @@ class DQN(Process):
 
     def got_feature(self, state):
         print('-----------split-----------')
-        now_state = state.reshape([resolution[0], resolution[1], 3])
-        plt.imshow(now_state)
+        plt.imshow(state)
         plt.savefig('./' + 'now_state' + '.jpg')
         '''
         conv start
@@ -297,7 +297,7 @@ class DQN(Process):
 
 
 trainer = DQN()
-trainer.perform_learning_step(load=False,iterators=3)
-#trainer.watch_model(3)
+trainer.perform_learning_step(load=False,iterators=1)
+trainer.watch_model(1)
 #trainer.visualization_fliter(1)
 #plot_kernels(trainer.model.conv1)

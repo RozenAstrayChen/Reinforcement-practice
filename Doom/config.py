@@ -7,6 +7,7 @@ config_file_path = "./scenarios/simpler_basic.cfg"
 config_file_path2 = "./scenarios/deadly_corridor.cfg"
 config_file_path3 = "./scenarios/defend_the_line.cfg"
 config_file_path4 = "./scenarios/defend_the_center.cfg"
+config_file_path5 = "./scenarios/health_gathering.cfg"
 # model save
 model_savefile = "model-doom.pth"
 modle2_savefile = "./model4-doom.pth"
@@ -15,11 +16,11 @@ modle2_savefile = "./model4-doom.pth"
 in first basic wad i using 30,45
 in second map, i using origin pixel size
 '''
-resolution = (60, 108)
+resolution = (30, 45)
 # memory size
 replay_memory_size = 10000
 # learning hyperparameters
-learning_rate = 0.00005
+learning_rate = 0.00025
 gamma = 0.99
 epsilon = 1
 dec_eps = 0.995

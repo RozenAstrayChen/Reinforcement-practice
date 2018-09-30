@@ -9,7 +9,7 @@ The memory is store experenice, we need collect and sample which is in order to 
 
 class ReplayMemory:
     def __init__(self, capacity):
-        channels = 3
+        channels = 1
         state_shape = (capacity, channels, resolution[0], resolution[1])
         self.s1 = np.zeros(state_shape, dtype=np.float32)
         self.s2 = np.zeros(state_shape, dtype=np.float32)
