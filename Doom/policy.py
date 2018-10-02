@@ -224,7 +224,7 @@ class Policy(Process):
             print('^ run')
 
 policy = Policy()
-#policy.train_model(load=True, num=1, iterators=2)
+policy.train_model(load=True, num=2, iterators=10)
 
-policy.watch_model(2,delay=False)
+#policy.watch_model(2,delay=False)
 print('over!')
