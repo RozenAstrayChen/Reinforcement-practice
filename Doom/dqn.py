@@ -30,7 +30,7 @@ class DQN(Process):
         # find game available action
         n = self.game.get_available_buttons_size()
         #actions = [list(a) for a in it.product([0, 1], repeat=n)]
-        actions = np.identity(3,dtype=int).tolist()
+        actions = np.identity(3, dtype=int).tolist()
         self.action_available = actions
         #self.model = Net(len(actions)).to(device)
         self.model = Net(len(actions)).to(device)
@@ -161,9 +161,6 @@ class DQN(Process):
         print("Loading model from: ", current_name)
         self.model = torch.load(current_name)
 
-    
-
-
     '''
     bp using
     process:
@@ -242,8 +239,6 @@ class DQN(Process):
             #print('eps == ' ,self.eps,'action ==',action)
             return action
 
-    
-
     def got_feature(self, state):
         print('-----------split-----------')
         plt.imshow(state)
@@ -297,7 +292,7 @@ class DQN(Process):
 
 
 trainer = DQN()
-trainer.perform_learning_step(load=False,iterators=1)
+trainer.perform_learning_step(load=False, iterators=1)
 trainer.watch_model(1)
 #trainer.visualization_fliter(1)
 #plot_kernels(trainer.model.conv1)

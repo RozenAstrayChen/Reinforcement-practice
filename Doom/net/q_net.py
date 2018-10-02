@@ -9,7 +9,7 @@ class Net(nn.Module):
     def __init__(self, available_actions_count):
         super(Net, self).__init__()
         # if 30*45
-        self.conv1 = nn.Conv2d(1, 8, kernel_size=6, stride=3)
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=, stride=3)
         # out is (8,9,14)
         self.conv2 = nn.Conv2d(8, 8, kernel_size=3, stride=2)
         # out is (8,4,6)

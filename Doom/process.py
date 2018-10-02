@@ -2,13 +2,48 @@ import skimage.color, skimage.transform
 from config import *
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
 # -*- coding: utf-8 -*-
 '''
 this is the basic object which is process some chores
 '''
+
+
 class Process:
     def __init__(self):
         pass
+    '''
+    def save plt
+    '''
+    def plot_save(self,rewards):
+        plt.figure(2)
+        plt.clf()
+        durations_t = torch.FloatTensor(rewards)
+        plt.title('Training...')
+        plt.xlabel('Episode')
+        plt.ylabel('Duration')
+        plt.plot(durations_t.numpy())
+        plt.savefig('./total.jpg')
+    '''
+    plt reward immediate
+    '''
+    def plot_durations(self,rewards):
+        plt.figure(2)
+        plt.clf()
+        durations_t = torch.FloatTensor(rewards)
+        plt.title('Training...')
+        plt.xlabel('Episode')
+        plt.ylabel('Duration')
+        plt.plot(durations_t.numpy())
+        # Take 100 episode averages and plot them too
+        """
+        if len(durations_t) >= 100:
+            means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
+            means = torch.cat((torch.zeros(99), means))
+            plt.plot(means.numpy())
+        """
+        plt.pause(0.001)  # pause a bit so that plots are updated
+
     '''
     show score
     '''
@@ -24,7 +59,7 @@ class Process:
         plt.ylabel('rewads')
         plt.savefig(timeString)
         plt.show()
-    
+
     '''
     show mean,min,max score
     '''
@@ -39,7 +74,7 @@ class Process:
         plt.legend(['mean', 'min', 'max'], loc='upper left')
         plt.savefig(name)
         plt.show()
-    
+
     '''
     Subsampling image and convert to numpy types
     '''
@@ -58,7 +93,7 @@ class Process:
         preprocessed_frame = skimage.transform.resize(frame, resolution)
         normalized_frame = preprocessed_frame.astype(np.float32)
         return normalized_frame
-    
+
     def plot_kernels(self, tensor, layer, num_cols=8, num_rows=6):
         if not tensor.ndim == 4:
             raise Exception("assumes a 4D tensor")
@@ -85,3 +120,21 @@ class Process:
         plt.imshow(np.abs(saliency[0]), cmap='gray')
         #plt.savefig('./'+'saliency'+'.jpg')
         plt.show()
+
+    '''
+    save model
+    '''
+
+    def save_model(self, num,model):
+        current_name = './' + str(num) + model_savefile
+        torch.save(model, current_name)
+
+    '''
+    load model
+    '''
+
+    def load_model(self, num):
+        current_name = './' + str(num) + model_savefile
+        print("Loading model from: ", current_name)
+        return torch.load(current_name)
+

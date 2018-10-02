@@ -1,0 +1,3 @@
+*.pth
+_vizdoom.ini
+learning_pytorch.py
