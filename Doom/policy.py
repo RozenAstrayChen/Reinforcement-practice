@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 #from torch.distributions import Bernoulli
 from torch.distributions import Categorical
 import matplotlib.pyplot as plt
-
 '''
 my tools
 '''
@@ -38,7 +37,7 @@ class Policy(Process):
         actions = np.identity(3, dtype=int).tolist()
         self.action_available = actions
         #self.model = Net(len(actions)).to(device)
-        self.model = Net(len(actions))
+        self.model = Net(len(actions)).to(device)
         #bp
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=learning_rate)
@@ -48,6 +47,7 @@ class Policy(Process):
 
         self.saved_log_probs = []
         self.rewards = []
+
     '''
     
     def preprocess(self,frame):
@@ -81,22 +81,18 @@ class Policy(Process):
     choose action
     '''
 
-    def choose_action(self, state,q_type=False):
+    def choose_action(self, state):
+
         probs = self.convert2Tensor(state)
         #print(probs)
-        if q_type is True:
-            m, index = torch.max(probs, 1)
-            action = index.data.cpu().numpy()[0]
-            #print('eps == ' ,self.eps,'action ==',action)
-        else:
-            m = Categorical(probs=probs)
-            action = m.sample()
-            '''
-            action = torch.multinomial(m.probs, 1, True)
-            '''
-            self.saved_log_probs.append(m.log_prob(action))
+        m = Categorical(probs=probs)
+        action = m.sample()
+        '''
+        action = torch.multinomial(m.probs, 1, True)
+        '''
+        self.saved_log_probs.append(m.log_prob(action))
 
-            #print(action)
+        #print(action)
 
         return action.item()
 
@@ -118,16 +114,18 @@ class Policy(Process):
         rewards = torch.tensor(rewards)
         # if basic will shot immediate, reward - reward.mean is zero
         #if rewards.shape[0] != 1:
-        rewards = (rewards - rewards.mean()) / (rewards.std()  + self.eps)
-            
+        rewards = (rewards - rewards.mean()) / (rewards.std() + self.eps)
+
         for log_prob, reward in zip(self.saved_log_probs, rewards):
+            log_prob = log_prob.to(device)
+            reward = reward.to(device)
             policy_loss.append(-log_prob * reward)
-            
+
         #else:
         #    rewards = math.log(rewards)
         #   rewards = torch.FloatTensor([rewards])
-        
-       # loss = (torch.sum(torch.mul(self.policy_history, Variable(rewards)).mul(-1), -1))
+
+    # loss = (torch.sum(torch.mul(self.policy_history, Variable(rewards)).mul(-1), -1))
         policy_loss = torch.cat(policy_loss).sum()
         '''
         print('policy = ',self.saved_log_probs)
@@ -139,11 +137,10 @@ class Policy(Process):
         self.optimizer.zero_grad()
         policy_loss.backward()
         self.optimizer.step()
-        
+
         #Save and intialize episode history counters
         del policy.rewards[:]
         del policy.saved_log_probs[:]
-
     '''
     train step
     '''
@@ -154,11 +151,11 @@ class Policy(Process):
         train_episodes_finished = 0
         reward_collect = []
         for iterator in range(0, iterators):
-            
+
             for epoch in range(learning_step_per_epoch):
                 self.game.new_episode()
                 train_scores = []
-                for learning_step in range(learning_step_per_epoch):
+                for learning_step in range(1000):
                     s1 = self.preprocess(self.game.get_state().screen_buffer)
 
                     s1 = s1.reshape([1, 1, resolution[0], resolution[1]])
@@ -168,21 +165,23 @@ class Policy(Process):
                         self.action_available[action_index], frame_repeat)
 
                     self.rewards.append(reward)
-                    
+
                     if self.game.is_episode_finished():
                         train_episodes_finished += 1
                         train_scores.append(self.game.get_total_reward())
-                        reward_collect.append(train_scores)
-                        break
-                # update data 
-                self.update_poilicy()
                         
-
-                print("%d training episodes played." % train_episodes_finished)
-                train_scores = np.array(train_scores)
-                print("Results: mean: %.1f +/- %.1f," % (train_scores.mean(), train_scores.std()))
-                self.plot_durations(reward_collect)
-            self.save_model(iterator + 1,self.model)
+                        break
+                # update data
+                self.update_poilicy()
+                if (train_episodes_finished % 50 == 0):
+                    print("%d training episodes played." %
+                          train_episodes_finished)
+                    reward_collect.append(train_scores)
+                    train_scores = np.array(train_scores)
+                    print("Results: mean: %.1f +/- %.1f," %
+                          (train_scores.mean(), train_scores.std()))
+                    self.plot_durations(reward_collect)
+            self.save_model(iterator + 1, self.model)
         self.plot_save(reward_collect)
         self.game.close()
 
@@ -190,7 +189,7 @@ class Policy(Process):
     test step
     '''
 
-    def watch_model(self, num,delay=False):
+    def watch_model(self, num, delay=False):
         import time
         self.model = self.load_model(num)
         self.game = init_doom(visable=True)
@@ -199,7 +198,7 @@ class Policy(Process):
             while not self.game.is_episode_finished():
                 state = self.preprocess(self.game.get_state().screen_buffer)
                 state = state.reshape([1, 1, resolution[0], resolution[1]])
-                action_index = self.choose_action(state,q_type=False)
+                action_index = self.choose_action(state)
                 if delay is True:
                     self.show_action(action_index)
                     sleep(0.5)
@@ -215,16 +214,10 @@ class Policy(Process):
 
         self.game.close()
 
-    def show_action(self,index):
-        if index == 0:
-            print('<-- left look')
-        elif index == 1:
-            print('--> right look')
-        else:
-            print('^ run')
-
+'''
 policy = Policy()
-policy.train_model(load=True, num=2, iterators=10)
+#policy.train_model(load=False, num=2, iterators=5)
 
-#policy.watch_model(2,delay=False)
+policy.watch_model(5,delay=False)
 print('over!')
+'''

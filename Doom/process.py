@@ -12,10 +12,12 @@ this is the basic object which is process some chores
 class Process:
     def __init__(self):
         pass
+
     '''
     def save plt
     '''
-    def plot_save(self,rewards):
+
+    def plot_save(self, rewards):
         plt.figure(2)
         plt.clf()
         durations_t = torch.FloatTensor(rewards)
@@ -24,10 +26,12 @@ class Process:
         plt.ylabel('Duration')
         plt.plot(durations_t.numpy())
         plt.savefig('./total.jpg')
+
     '''
     plt reward immediate
     '''
-    def plot_durations(self,rewards):
+
+    def plot_durations(self, rewards):
         plt.figure(2)
         plt.clf()
         durations_t = torch.FloatTensor(rewards)
@@ -125,7 +129,7 @@ class Process:
     save model
     '''
 
-    def save_model(self, num,model):
+    def save_model(self, num, model):
         current_name = './' + str(num) + model_savefile
         torch.save(model, current_name)
 
@@ -138,3 +142,10 @@ class Process:
         print("Loading model from: ", current_name)
         return torch.load(current_name)
 
+    def show_action(self, index):
+        if index == 0:
+            print('<-- left look')
+        elif index == 1:
+            print('--> right look')
+        else:
+            print('^ run')

@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.distributions import Normal
+from torch.distributions import Categorical
 
 parser = argparse.ArgumentParser(description='PyTorch actor-critic example')
 parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
@@ -69,6 +69,7 @@ def finish_episode():
 	for (log_prob, value), r in zip(saved_actions, rewards):
 		reward = r - value.item()
 		policy_losses.append(-log_prob * reward)
+		print(value,r)
 		value_losses.append(F.smooth_l1_loss(value, torch.tensor([r])))
 	optimizer.zero_grad()
 	loss  = torch.stack(policy_losses).sum() + torch.stack(value_losses).sum()

@@ -16,7 +16,7 @@ modle2_savefile = "./model4-doom.pth"
 in first basic wad i using 30,45
 in second map, i using origin pixel size
 '''
-resolution = (60,108)
+resolution = (60, 108)
 # memory size
 replay_memory_size = 10000
 # learning hyperparameters
