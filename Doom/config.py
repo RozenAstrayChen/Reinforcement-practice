@@ -31,14 +31,17 @@ gamma = 0.99
 epsilon = 1
 dec_eps = 0.995
 min_eps = 0.01
-epochs = 20
-learning_step_per_epoch = 2000
+total_episode = 2000
+learning_step_per_epoch = 100
 test_step_per_epoch = 100
 watch_step_per_epoch = 10
 # NN
 batch_size = 64
 # frame
 frame_repeat = 12
+stack_size = 4
+max_steps = 100
+
 
 # parameters
 deep_q_netowrk = 'dqn'

@@ -4,6 +4,7 @@ from config import *
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+from collections import deque  # Ordered collection with ends
 # -*- coding: utf-8 -*-
 '''
 this is the basic object which is process some chores
@@ -13,8 +14,8 @@ this is the basic object which is process some chores
 class Process:
 
     def __init__(self):
-        pass
-
+        self.stacked_frames = deque([np.zeros((resolution[0], resolution[1]), dtype=np.int)
+                                     for i in range(stack_size)], maxlen=stack_size)
     '''
     def save plt
     '''
@@ -93,12 +94,36 @@ class Process:
         # Crop the screen (remove the roof because it contains no information)
         #cropped_frame = frame[30:-10,30:-30]
         # Normalize Pixel Values
-        #normalized_frame = frame / 255.0
+        normalized_frame = frame / 255.0
         # plt.imshow(frame,cmap='gray')
         # plt.show()
-        preprocessed_frame = skimage.transform.resize(frame, resolution)
-        normalized_frame = preprocessed_frame.astype(np.float32)
+        normalized_frame = skimage.transform.resize(frame, resolution)
+        normalized_frame = normalized_frame.astype(np.float32)
         return normalized_frame
+    '''
+    frame skip
+    '''
+
+    def stack_frames(self, state, is_new_episode):
+        frame = self.preprocess(state)
+        if is_new_episode:
+            self.stacked_frames = deque([np.zeros((resolution[0], resolution[1]), dtype=np.int)
+                                         for i in range(stack_size)], maxlen=stack_size)
+            self.stacked_frames.append(frame)
+            self.stacked_frames.append(frame)
+            self.stacked_frames.append(frame)
+            self.stacked_frames.append(frame)
+
+            # stack frames
+            stacked_state = np.stack(self.stacked_frames, axis=0)
+            # print(stacked_state.shape)
+        else:
+            self.stacked_frames.append(frame)
+            stacked_state = np.stack(self.stacked_frames, axis=0)
+        return stacked_state
+
+    def frames_reshape(self, frame):
+        return frame.reshape([1, stack_size, resolution[0], resolution[1]])
 
     def plot_kernels(self, tensor, layer, num_cols=8, num_rows=6):
         if not tensor.ndim == 4:

@@ -33,79 +33,69 @@ class DQN(Process):
         # find game available action
         n = self.game.get_available_buttons_size()
         actions = [list(a) for a in it.product([0, 1], repeat=n)]
-        #actions = np.identity(3, dtype=int).tolist()
+        # actions = np.identity(3, dtype=int).tolist()
         self.action_available = actions
-        #self.model = Net(len(actions)).to(device)
+        # self.model = Net(len(actions)).to(device)
         self.model = Net(len(actions)).to(device)
         # loss
         self.criterion = nn.MSELoss().cuda()
         # bp
-        self.optimizer = torch.optim.SGD(self.model.parameters(),
-                                         learning_rate)
+        self.optimizer = torch.optim.Adam(self.model.parameters(),
+                                          learning_rate)
         self.eps = epsilon
         self.memory = ReplayMemory(replay_memory_size)
 
     def train_model(self, load=False, num=0, iterators=1):
-        train_mean = []
-        train_max = []
-        train_min = []
+
         if load == True:
             self.load_model(deep_q_netowrk, model)
+        loss = 0
+        rewards_collect = []
         for iterator in range(0, iterators):
+            train_episodes_finished = 0
+            for epoch in range(total_episode):
 
-            #collect_scores = []
-
-            for epoch in range(epochs):
-                print("\nEpoch %d\n-------" % (epoch + 1))
-                train_scores = []
-
-                train_episodes_finished = 0
-                print("Training...")
                 self.game.new_episode()
-                # trange show the long process text
-                for learning_step in trange(
-                        learning_step_per_epoch, leave=False):
-                    # while not self.game.is_episode_finished():
-                    s1 = self.preprocess(self.game.get_state().screen_buffer)
-                    s1 = s1.reshape([1, 1, resolution[0], resolution[1]])
+                s1 = self.stack_frames(
+                    self.game.get_state().screen_buffer, True)
+                s1 = self.frames_reshape(s1)
+
+                while not self.game.is_episode_finished():
                     action_index = self.choose_action(s1)
                     reward = self.game.make_action(
                         self.action_available[action_index], frame_repeat)
 
                     isterminal = self.game.is_episode_finished()
                     if not isterminal:
-                        s2 = self.preprocess(self.game.get_state()
-                                             .screen_buffer)
-                        s2 = s2.reshape([1, 1, resolution[0], resolution[1]])
+                        s2 = self.stack_frames(
+                            self.game.get_state().screen_buffer, False)
+                        s2 = self.frames_reshape(s2)
+                        s1 = s2
                     else:
-                        s2 = None
+                        # put none to stack
+                        s2 = self.stack_frames(
+                            np.zeros([resolution[0], resolution[1]]), False)
+                        s2 = self.frames_reshape(s2)
 
                     self.memory.add_transition(s1, action_index, s2,
                                                isterminal, reward)
-
-                    self.learn_from_memory()
-
-                    if self.game.is_episode_finished():
-                        score = self.game.get_total_reward()
-                        train_scores.append(score)
-                        # collect_scores.append(score)
-                        train_episodes_finished += 1
-                        # next start
-                        self.game.new_episode()
-                print("%d training episodes played." % train_episodes_finished)
-                train_scores = np.array(train_scores)
-                print("Results: mean: %.1f +/- %.1f," % (train_scores.mean(), train_scores.std()),
-                      "min: %.1f," % train_scores.min(), "max: %.1f," % train_scores.max())
-                train_mean.append(train_scores.mean())
-                train_min.append(train_scores.min())
-                train_max.append(train_scores.max())
+                    loss = self.learn_from_memory()
+                train_episodes_finished += 1
+                if train_episodes_finished % 20 == 0:
+                    print("%d training episodes played." %
+                          train_episodes_finished)
+                    print("Results: mean: %.1f " %
+                          self.game.get_total_reward())
+                    print("Loss: %.1f" % loss)
+                    rewards_collect.append(self.game.get_total_reward())
+                    self.plot_durations(rewards_collect)
             '''
             loop over
             '''
             # self.show_score(collect_scores,iterator)
 
-            self.save_model(deep_q_netowrk, iterator + 1)
-        self.total_score(train_mean, train_min, train_max)
+            self.save_model(deep_q_netowrk, iterator + 1, self.model)
+        self.plot_save(rewards_collect)
         self.game.close()
 
     '''
@@ -113,23 +103,24 @@ class DQN(Process):
     '''
 
     def watch_model(self, num):
-        self.load_model(num)
+        self.model = self.load_model(deep_q_netowrk, num)
         self.game = init_doom(scenarios=self.map, visable=True)
         for _ in range(watch_step_per_epoch):
             self.game.new_episode()
+            state = self.stack_frames(
+                self.game.get_state().screen_buffer, True)
+            state = self.frames_reshape(state)
+
             while not self.game.is_episode_finished():
-                state = self.preprocess(self.game.get_state().screen_buffer)
-                state = state.reshape([1, 1, resolution[0], resolution[1]])
-
                 action_index = self.choose_action(state, watch_flag=True)
-                # Instead of make_action(a, frame_repeat) in order to make the
-                # animation smooth
-                self.game.set_action(self.action_available[action_index])
+                state = self.stack_frames(
+                    self.game.get_state().screen_buffer, True)
+                state = self.frames_reshape(state)
 
-                for _ in range(frame_repeat):
-                    reward = self.game.advance_action()
+                self.game.make_action(self.action_available[action_index])
 
-                #reward = self.game.make_action(self.action_available[action_index])
+                # reward =
+                # self.game.make_action(self.action_available[action_index])
             sleep(1.0)
             score = self.game.get_total_reward()
             print("Total score: ", score)
@@ -160,7 +151,7 @@ class DQN(Process):
     def propagation(self, state, target_q):
         s1 = torch.from_numpy(state)
 
-        #print('target_q = ',target_q)
+        # print('target_q = ',target_q)
         target_q = torch.from_numpy(target_q)
         s1, target_q = Variable(s1), Variable(target_q)
         # change to gpu type
@@ -174,12 +165,12 @@ class DQN(Process):
         forward propagation
         '''
         output = self.model(s1)
-        #print('predict = ',output)
+        # print('predict = ',output)
         '''
         get loos value
         '''
         loss = self.criterion(output, target_q).cuda()
-        #print('loss = ',loss)
+        # print('loss = ',loss)
         '''
         do back propagation
         '''
@@ -194,7 +185,7 @@ class DQN(Process):
         return loss
 
     '''
-    convert to tensor data and do forward, 
+    convert to tensor data and do forward,
     and wont do forwad propagation, because is just choice action
     '''
 
@@ -211,7 +202,7 @@ class DQN(Process):
 
     #(64, 1, 30, 45)
     def choose_action(self, state, watch_flag=False):
-        #state = torch.unsqueeze(torch.FloatTensor(state), 0).to(device)
+        # state = torch.unsqueeze(torch.FloatTensor(state), 0).to(device)
         if self.eps > np.random.uniform() and watch_flag is False:
             action_index = np.random.randint(0, len(self.action_available) - 1)
             '''
@@ -223,7 +214,7 @@ class DQN(Process):
             q = self.get_q(state)
             m, index = torch.max(q, 1)
             action = index.data.cpu().numpy()[0]
-            #print('eps == ' ,self.eps,'action ==',action)
+            # print('eps == ' ,self.eps,'action ==',action)
             return action
 
     def got_feature(self, state):
@@ -258,15 +249,22 @@ class DQN(Process):
         self.exploration_rate()
         if self.memory.size > batch_size:
             s1, a, s2, isterminal, r = self.memory.get_sample(batch_size)
+            # reshape to [1,4,height,width]
+            s1 = s1.reshape(
+                [batch_size, 4, resolution[0], resolution[1]])
+            s2 = s2.reshape(
+                [batch_size, 4, resolution[0], resolution[1]])
             # convert numpy type
             target_q = self.get_q(s1).cpu().data.cpu().numpy()
+            print('target', target_q.shape)
             # get state+1 value
             predict_q = self.get_q(s2).data.cpu().numpy()
+            print('predict', predict_q.shape)
             predict_q = np.max(predict_q, axis=1)
-            #q_target = r + gamma*(q_next(1)[0].view(batch_size, 1))
+            # q_target = r + gamma*(q_next(1)[0].view(batch_size, 1))
             target_q[np.arange(target_q.shape[0]),
                      a] = r + gamma * (1 - isterminal) * predict_q
-            self.propagation(s1, target_q)
+            return self.propagation(s1, target_q)
 
     '''
     decrease explorate
@@ -282,6 +280,6 @@ class DQN(Process):
 trainer = DQN()
 trainer.perform_learning_step(load=False, iterators=1)
 trainer.watch_model(1)
-#trainer.visualization_fliter(1)
-#plot_kernels(trainer.model.conv1)
+# trainer.visualization_fliter(1)
+# plot_kernels(trainer.model.conv1)
 '''
