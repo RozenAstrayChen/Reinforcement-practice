@@ -1,4 +1,5 @@
-import skimage.color, skimage.transform
+import skimage.color
+import skimage.transform
 from config import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,6 +11,7 @@ this is the basic object which is process some chores
 
 
 class Process:
+
     def __init__(self):
         pass
 
@@ -92,8 +94,8 @@ class Process:
         #cropped_frame = frame[30:-10,30:-30]
         # Normalize Pixel Values
         #normalized_frame = frame / 255.0
-        #plt.imshow(frame,cmap='gray')
-        #plt.show()
+        # plt.imshow(frame,cmap='gray')
+        # plt.show()
         preprocessed_frame = skimage.transform.resize(frame, resolution)
         normalized_frame = preprocessed_frame.astype(np.float32)
         return normalized_frame
@@ -111,8 +113,8 @@ class Process:
                 plt.subplot(num_cols, num_rows, j + (i * 4))
                 plt.imshow(tensor[0][j], cmap='gray')
 
-            #plt.imshow(tensor[0][i],cmap='gray')
-            #plt.show()
+            # plt.imshow(tensor[0][i],cmap='gray')
+            # plt.show()
         plt.savefig('./' + layer + '.jpg')
         plt.show()
 
@@ -122,23 +124,23 @@ class Process:
 
     def plot_grad(self, saliency):
         plt.imshow(np.abs(saliency[0]), cmap='gray')
-        #plt.savefig('./'+'saliency'+'.jpg')
+        # plt.savefig('./'+'saliency'+'.jpg')
         plt.show()
 
     '''
     save model
     '''
 
-    def save_model(self, num, model):
-        current_name = './' + str(num) + model_savefile
+    def save_model(self, name, num, model):
+        current_name = './' + str(num) + name + savefile
         torch.save(model, current_name)
 
     '''
     load model
     '''
 
-    def load_model(self, num):
-        current_name = './' + str(num) + model_savefile
+    def load_model(self, name, num):
+        current_name = './' + str(num) + name + savefile
         print("Loading model from: ", current_name)
         return torch.load(current_name)
 

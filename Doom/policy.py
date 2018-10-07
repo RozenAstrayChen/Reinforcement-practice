@@ -5,7 +5,8 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.nn import Parameter
 from time import time, sleep
-import skimage.color, skimage.transform
+import skimage.color
+import skimage.transform
 from torchvision import datasets, transforms
 import math
 from torch.autograd import Variable
@@ -30,15 +31,17 @@ print(torch.cuda.get_device_name(0))
 
 
 class Policy(Process):
-    def __init__(self):
-        self.game = init_doom(visable=False)
-        #n = self.game.get_available_buttons_size()
-        #actions = [list(a) for a in it.product([0, 1], repeat=n)]
-        actions = np.identity(3, dtype=int).tolist()
+
+    def __init__(self, map=map_health):
+        self.map = map
+        self.game = init_doom(map, visable=False)
+        n = self.game.get_available_buttons_size()
+        actions = [list(a) for a in it.product([0, 1], repeat=n)]
+        #actions = np.identity(3, dtype=int).tolist()
         self.action_available = actions
         #self.model = Net(len(actions)).to(device)
         self.model = Net(len(actions)).to(device)
-        #bp
+        # bp
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=learning_rate)
         self.eps = epsilon
@@ -73,8 +76,8 @@ class Policy(Process):
     def convert2Tensor(self, state):
         state = torch.from_numpy(state).type(torch.FloatTensor)
         state = Variable(state)
-        #state = state.to(device)
-        #print(state.shape)
+        state = state.to(device)
+        # print(state.shape)
         return self.model(state)
 
     '''
@@ -84,7 +87,7 @@ class Policy(Process):
     def choose_action(self, state):
 
         probs = self.convert2Tensor(state)
-        #print(probs)
+        # print(probs)
         m = Categorical(probs=probs)
         action = m.sample()
         '''
@@ -92,7 +95,7 @@ class Policy(Process):
         '''
         self.saved_log_probs.append(m.log_prob(action))
 
-        #print(action)
+        # print(action)
 
         return action.item()
 
@@ -113,7 +116,7 @@ class Policy(Process):
         # Scale rewards
         rewards = torch.tensor(rewards)
         # if basic will shot immediate, reward - reward.mean is zero
-        #if rewards.shape[0] != 1:
+        # if rewards.shape[0] != 1:
         rewards = (rewards - rewards.mean()) / (rewards.std() + self.eps)
 
         for log_prob, reward in zip(self.saved_log_probs, rewards):
@@ -121,7 +124,7 @@ class Policy(Process):
             reward = reward.to(device)
             policy_loss.append(-log_prob * reward)
 
-        #else:
+        # else:
         #    rewards = math.log(rewards)
         #   rewards = torch.FloatTensor([rewards])
 
@@ -138,16 +141,16 @@ class Policy(Process):
         policy_loss.backward()
         self.optimizer.step()
 
-        #Save and intialize episode history counters
-        del policy.rewards[:]
-        del policy.saved_log_probs[:]
+        # Save and intialize episode history counters
+        del self.rewards[:]
+        del self.saved_log_probs[:]
     '''
     train step
     '''
 
     def train_model(self, load=False, num=0, iterators=1):
         if load == True:
-            self.model = self.load_model(num)
+            self.model = self.load_model(policy, num)
         train_episodes_finished = 0
         reward_collect = []
         for iterator in range(0, iterators):
@@ -169,7 +172,7 @@ class Policy(Process):
                     if self.game.is_episode_finished():
                         train_episodes_finished += 1
                         train_scores.append(self.game.get_total_reward())
-                        
+
                         break
                 # update data
                 self.update_poilicy()
@@ -182,7 +185,7 @@ class Policy(Process):
                           (train_scores.mean(), train_scores.std()))
                     self.plot_durations(reward_collect)
             self.save_model(iterator + 1, self.model)
-        self.plot_save(reward_collect)
+        self.plot_save(policy, reward_collect)
         self.game.close()
 
     '''
@@ -191,8 +194,8 @@ class Policy(Process):
 
     def watch_model(self, num, delay=False):
         import time
-        self.model = self.load_model(num)
-        self.game = init_doom(visable=True)
+        self.model = self.load_model(policy_gradient, num)
+        self.game = init_doom(scenarios=self.map, visable=True)
         for _ in range(watch_step_per_epoch):
             self.game.new_episode()
             while not self.game.is_episode_finished():
@@ -202,8 +205,9 @@ class Policy(Process):
                 if delay is True:
                     self.show_action(action_index)
                     sleep(0.5)
-                #print(action_index)
-                # Instead of make_action(a, frame_repeat) in order to make the animation smooth
+                # print(action_index)
+                # Instead of make_action(a, frame_repeat) in order to make the
+                # animation smooth
                 self.game.set_action(self.action_available[action_index])
                 reward = self.game.advance_action()
 
@@ -213,6 +217,7 @@ class Policy(Process):
             print("Total score: ", score)
 
         self.game.close()
+
 
 '''
 policy = Policy()

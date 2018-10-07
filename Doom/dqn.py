@@ -5,7 +5,8 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.nn import Parameter
 from time import time, sleep
-import skimage.color, skimage.transform
+import skimage.color
+import skimage.transform
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 from tqdm import trange
@@ -25,29 +26,31 @@ print(torch.cuda.get_device_name(0))
 
 
 class DQN(Process):
-    def __init__(self):
-        self.game = init_doom(visable=False)
+
+    def __init__(self, map=map_basic):
+        self.game = init_doom(map, visable=False)
+        self.map = map
         # find game available action
         n = self.game.get_available_buttons_size()
-        #actions = [list(a) for a in it.product([0, 1], repeat=n)]
-        actions = np.identity(3, dtype=int).tolist()
+        actions = [list(a) for a in it.product([0, 1], repeat=n)]
+        #actions = np.identity(3, dtype=int).tolist()
         self.action_available = actions
         #self.model = Net(len(actions)).to(device)
         self.model = Net(len(actions)).to(device)
-        #loss
+        # loss
         self.criterion = nn.MSELoss().cuda()
-        #bp
+        # bp
         self.optimizer = torch.optim.SGD(self.model.parameters(),
                                          learning_rate)
         self.eps = epsilon
         self.memory = ReplayMemory(replay_memory_size)
 
-    def perform_learning_step(self, load=False, model=0, iterators=1):
+    def train_model(self, load=False, num=0, iterators=1):
         train_mean = []
         train_max = []
         train_min = []
         if load == True:
-            self.load_model(model)
+            self.load_model(deep_q_netowrk, model)
         for iterator in range(0, iterators):
 
             #collect_scores = []
@@ -62,7 +65,7 @@ class DQN(Process):
                 # trange show the long process text
                 for learning_step in trange(
                         learning_step_per_epoch, leave=False):
-                    #while not self.game.is_episode_finished():
+                    # while not self.game.is_episode_finished():
                     s1 = self.preprocess(self.game.get_state().screen_buffer)
                     s1 = s1.reshape([1, 1, resolution[0], resolution[1]])
                     action_index = self.choose_action(s1)
@@ -85,13 +88,13 @@ class DQN(Process):
                     if self.game.is_episode_finished():
                         score = self.game.get_total_reward()
                         train_scores.append(score)
-                        #collect_scores.append(score)
+                        # collect_scores.append(score)
                         train_episodes_finished += 1
                         # next start
                         self.game.new_episode()
                 print("%d training episodes played." % train_episodes_finished)
                 train_scores = np.array(train_scores)
-                print("Results: mean: %.1f +/- %.1f," % (train_scores.mean(), train_scores.std()), \
+                print("Results: mean: %.1f +/- %.1f," % (train_scores.mean(), train_scores.std()),
                       "min: %.1f," % train_scores.min(), "max: %.1f," % train_scores.max())
                 train_mean.append(train_scores.mean())
                 train_min.append(train_scores.min())
@@ -99,9 +102,9 @@ class DQN(Process):
             '''
             loop over
             '''
-            #self.show_score(collect_scores,iterator)
+            # self.show_score(collect_scores,iterator)
 
-            self.save_model(iterator + 1)
+            self.save_model(deep_q_netowrk, iterator + 1)
         self.total_score(train_mean, train_min, train_max)
         self.game.close()
 
@@ -111,7 +114,7 @@ class DQN(Process):
 
     def watch_model(self, num):
         self.load_model(num)
-        self.game = init_doom(visable=True)
+        self.game = init_doom(scenarios=self.map, visable=True)
         for _ in range(watch_step_per_epoch):
             self.game.new_episode()
             while not self.game.is_episode_finished():
@@ -119,7 +122,8 @@ class DQN(Process):
                 state = state.reshape([1, 1, resolution[0], resolution[1]])
 
                 action_index = self.choose_action(state, watch_flag=True)
-                # Instead of make_action(a, frame_repeat) in order to make the animation smooth
+                # Instead of make_action(a, frame_repeat) in order to make the
+                # animation smooth
                 self.game.set_action(self.action_available[action_index])
 
                 for _ in range(frame_repeat):
@@ -142,24 +146,7 @@ class DQN(Process):
 
         action_index = self.choose_action(state, watch_flag=True)
         self.got_feature(state)
-        #self.plot_grad(state[0])
-
-    '''
-    save model
-    '''
-
-    def save_model(self, num):
-        current_name = './' + str(num) + model_savefile
-        torch.save(self.model, current_name)
-
-    '''
-    load model
-    '''
-
-    def load_model(self, num):
-        current_name = './' + str(num) + model_savefile
-        print("Loading model from: ", current_name)
-        self.model = torch.load(current_name)
+        # self.plot_grad(state[0])
 
     '''
     bp using
@@ -203,7 +190,7 @@ class DQN(Process):
         '''
         testing
         '''
-        #self.plot_grad(s1.grad.data.cpu().numpy()[0])
+        # self.plot_grad(s1.grad.data.cpu().numpy()[0])
         return loss
 
     '''
@@ -215,7 +202,7 @@ class DQN(Process):
         state = torch.from_numpy(state)
         state = Variable(state)
         state = state.to(device)
-        #print(state.shape)
+        # print(state.shape)
         return self.model(state)
 
     '''
@@ -271,7 +258,7 @@ class DQN(Process):
         self.exploration_rate()
         if self.memory.size > batch_size:
             s1, a, s2, isterminal, r = self.memory.get_sample(batch_size)
-            #convert numpy type
+            # convert numpy type
             target_q = self.get_q(s1).cpu().data.cpu().numpy()
             # get state+1 value
             predict_q = self.get_q(s2).data.cpu().numpy()
@@ -291,8 +278,10 @@ class DQN(Process):
             self.eps *= dec_eps
 
 
+'''
 trainer = DQN()
 trainer.perform_learning_step(load=False, iterators=1)
 trainer.watch_model(1)
 #trainer.visualization_fliter(1)
 #plot_kernels(trainer.model.conv1)
+'''

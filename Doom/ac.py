@@ -5,7 +5,8 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.nn import Parameter
 from time import time, sleep
-import skimage.color, skimage.transform
+import skimage.color
+import skimage.transform
 from torchvision import datasets, transforms
 import math
 from torch.autograd import Variable
@@ -34,17 +35,26 @@ SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 
 
 class AC(Policy):
-    def __init__(self):
-        super(AC, self).__init__()
+
+    def __init__(self, map=map_health):
+        super(AC, self).__init__(map)
+        self.map = map
         self.model = ACNet(len(self.action_available)).to(device)
         self.saved_actions = []
         self.rewards = []
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=learning_rate)
 
+    def convert2Tensor(self, state):
+        state = torch.from_numpy(state).type(torch.FloatTensor)
+        state = Variable(state)
+        state = state.to(device)
+        # print(state.shape)
+        return self.model(state)
+
     '''
-	Overwirte choose action
-	'''
+    Overwirte choose action
+    '''
 
     def choose_action(self, state):
         probs, state_value = self.convert2Tensor(state)
@@ -54,8 +64,8 @@ class AC(Policy):
         return action
 
     '''
-	Overwrite update policy
-	'''
+    Overwrite update policy
+    '''
 
     def update_policy(self, ):
         R = 0
@@ -67,7 +77,7 @@ class AC(Policy):
             R = r + gamma * R
             rewards.insert(0, R)
         rewards = torch.tensor(rewards)
-        #REINFORCE
+        # REINFORCE
         rewards = (rewards - rewards.mean()) / (rewards.std() + self.eps)
         for (log_prob, value), r in zip(saved_actions, rewards):
             reward = r - value.item()
@@ -88,12 +98,12 @@ class AC(Policy):
         del self.saved_actions[:]
 
     '''
-	Overwrite train model
-	'''
+    Overwrite train model
+    '''
 
     def train_model(self, load=False, num=0, iterators=1):
         if load is True:
-            self.model = self.load_model(num)
+            self.model = self.load_model(actor_cirtic, num)
         train_episodes_finished = 0
         rewards_collect = []
         for iterator in range(0, iterators):
@@ -124,11 +134,38 @@ class AC(Policy):
                     print("Results: mean: %.1f +/- %.1f," %
                           (train_scores.mean(), train_scores.std()))
                     self.plot_durations(rewards_collect)
-            self.save_model(iterator + 1, self.model)
+            self.save_model(actor_cirtic, iterator + 1, self.model)
         self.plot_save(rewards_collect)
         self.game.close()
 
+    def watch_model(self, num, delay=False):
+        import time
+        self.model = self.load_model(actor_cirtic, num)
+        self.game = init_doom(scenarios=self.map, visable=True)
+        for _ in range(watch_step_per_epoch):
+            self.game.new_episode()
+            while not self.game.is_episode_finished():
+                state = self.preprocess(self.game.get_state().screen_buffer)
+                state = state.reshape([1, 1, resolution[0], resolution[1]])
+                action_index = self.choose_action(state)
+                if delay is True:
+                    self.show_action(action_index)
+                    sleep(0.5)
+                # print(action_index)
+                # Instead of make_action(a, frame_repeat) in order to make the
+                # animation smooth
+                self.game.set_action(self.action_available[action_index])
+                reward = self.game.advance_action()
 
+                #reward = self.game.make_action(self.action_available[action_index])
+            sleep(1.0)
+            score = self.game.get_total_reward()
+            print("Total score: ", score)
+
+        self.game.close()
+
+'''
 ac = AC()
 #ac.train_model(load=True, num=1, iterators=5)
 ac.watch_model(5)
+'''

@@ -3,13 +3,18 @@
 This file is config all need hyperparameters
 """
 # scenarios path
-config_file_path = "./scenarios/simpler_basic.cfg"
-config_file_path2 = "./scenarios/deadly_corridor.cfg"
-config_file_path3 = "./scenarios/defend_the_line.cfg"
-config_file_path4 = "./scenarios/defend_the_center.cfg"
-config_file_path5 = "./scenarios/health_gathering.cfg"
+map_basic = "./scenarios/simpler_basic.cfg"
+map_corridor = "./scenarios/deadly_corridor.cfg"
+map_d_line = "./scenarios/defend_the_line.cfg"
+map_d_center = "./scenarios/defend_the_center.cfg"
+map_health = "./scenarios/health_gathering.cfg"
+map_xhealth = "./scenarios/health_gathering_supreme.cfg"
+map_match = "./scenarios/deathmatch.cfg"
+map_mwh = "./scenarios/my_way_home.cfg"
+map_cover = "./scenarios/take_cover.cfg"
+map_oblige = "./scenarios/oblige.cfg"
 # model save
-model_savefile = "model-doom.pth"
+savefile = ".pth"
 modle2_savefile = "./model4-doom.pth"
 #  images size
 '''
@@ -34,3 +39,9 @@ watch_step_per_epoch = 10
 batch_size = 64
 # frame
 frame_repeat = 12
+
+# parameters
+deep_q_netowrk = 'dqn'
+policy_gradient = 'pg'
+actor_cirtic = 'ac'
+double_dqn = 'ddqn'
