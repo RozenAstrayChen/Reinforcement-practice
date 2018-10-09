@@ -92,16 +92,16 @@ class Process:
         # x = np.mean(frame,-1)
 
         # Crop the screen (remove the roof because it contains no information)
-        #cropped_frame = frame[30:-10,30:-30]
+        #cropped_frame = frame[15:-5,20:-20]
         # Normalize Pixel Values
         normalized_frame = frame / 255.0
         # plt.imshow(frame,cmap='gray')
         # plt.show()
-        normalized_frame = skimage.transform.resize(frame, resolution)
+        normalized_frame = skimage.transform.resize(normalized_frame, resolution)
         normalized_frame = normalized_frame.astype(np.float32)
         return normalized_frame
     '''
-    frame skip
+  frame skip
     '''
 
     def stack_frames(self, state, is_new_episode):
@@ -123,7 +123,7 @@ class Process:
         return stacked_state
 
     def frames_reshape(self, frame):
-        return frame.reshape([1, stack_size, resolution[0], resolution[1]])
+        return frame.reshape([3,resolution[0], resolution[1]])
 
     def plot_kernels(self, tensor, layer, num_cols=8, num_rows=6):
         if not tensor.ndim == 4:

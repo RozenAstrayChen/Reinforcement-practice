@@ -27,7 +27,7 @@ if arg.model == deep_q_netowrk:
     model = DQN(map=arg.map)
     print('using dqn!')
 elif arg.model == double_dqn:
-    model = DDQN(map=arg.map)
+    model = DDQN(map=map_d_center)
     print('using ddqn!')
 elif arg.model == policy_gradient:
     model = Policy(arg.map)

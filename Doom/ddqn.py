@@ -42,8 +42,8 @@ class DDQN(DQN):
 
         self.target_model = Net(len(actions)).to(device)
         self.eval_model = Net(len(actions)).to(device)
-        self.optimizer = torch.optim.Adam(self.target_model.parameters(),
-                                          learning_rate)
+        self.optimizer = torch.optim.RMSprop(self.target_model.parameters(),
+                                             learning_rate)
         self.update_batch = 100
         self.counter = 0
 
@@ -52,6 +52,7 @@ class DDQN(DQN):
             action_index = np.random.randint(0, len(self.action_available) - 1)
             return action_index
         else:
+            state = state.reshape([1, 3, resolution[0], resolution[1]])
             q = self.get_eval(state)
             m, index = torch.max(q, 1)
             action = index.data.cpu().numpy()[0]
@@ -72,10 +73,16 @@ class DDQN(DQN):
     def learn_from_memory(self):
         self.counter += 1
         self.exploration_rate()
-        if self.memory.size > batch_size:
-            s1, a, s2, isterminal, r = self.memory.get_sample(batch_size)
-            target_q = self.get_target(s1).data.cpu().numpy()
+        if len(self.memory.buffer) > batch_size:
+
+            batch = self.memory.get_sample(batch_size)
+            s1 = np.array([each[0] for each in batch])
+            a = np.array([each[1] for each in batch])
+            r = np.array([each[2] for each in batch])
+            s2 = np.array([each[3] for each in batch])
+            isterminal = np.array([each[4] for each in batch])
             # using w which is eval
+            target_q = self.get_target(s1).data.cpu().numpy()
             predict_q = self.get_eval(s2).data.cpu().numpy()
 
             predict_q = np.max(predict_q, axis=-1)
@@ -121,15 +128,13 @@ class DDQN(DQN):
         train_episodes_finished = 0
         rewards_collect = []
         for iterator in range(0, iterators):
-            for epoch in range(learning_step_per_epoch):
+            for epoch in range(total_episode):
                 self.game.new_episode()
                 train_scores = []
-                for learn_step in range(1000):
-                    if self.counter % self.update_batch == 0:
-                        self.eval_model.load_state_dict(
-                            self.target_model.state_dict())
-                    s1 = self.preprocess(self.game.get_state().screen_buffer)
-                    s1 = s1.reshape([1, 1, resolution[0], resolution[1]])
+                s1 = self.preprocess(self.game.get_state().screen_buffer)
+                s1 = self.frames_reshape(s1)
+                while not self.game.is_episode_finished():
+
                     action_index = self.choose_action(s1)
                     reward = self.game.make_action(
                         self.action_available[action_index], frame_repeat)
@@ -138,12 +143,22 @@ class DDQN(DQN):
                     if not isterminal:
                         s2 = self.preprocess(
                             self.game.get_state().screen_buffer)
-                        s2 = s2.reshape([1, 1, resolution[0], resolution[1]])
+                        s2 = self.frames_reshape(s2)
+                        self.memory.add_transition((s1, action_index, reward,
+                                                    s2, isterminal))
+                        s1 = s2
                     else:
-                        s2 = None
-                    self.memory.add_transition(s1, action_index, s2,
-                                               isterminal, reward)
+
+                        s2 = np.zeros([3, resolution[0], resolution[1]]).astype(
+                            np.float32)
+                        self.memory.add_transition((s1, action_index, reward,
+                                                    s2, isterminal))
+
                     self.learn_from_memory()
+                    # clone target net wights to eval
+                    if self.counter % self.update_batch == 0:
+                        self.eval_model.load_state_dict(
+                            self.target_model.state_dict())
 
                     if self.game.is_episode_finished():
                         train_episodes_finished += 1
@@ -154,10 +169,10 @@ class DDQN(DQN):
                           train_episodes_finished)
                     rewards_collect.append(train_scores)
                     train_scores = np.array(train_scores)
-                    print("Results: mean: %.1f +/- %.1f," % (train_scores.mean(),
-                                                             train_scores.std()))
+                    print("Results: mean: %.1f +/- %.1f," %
+                          (train_scores.mean(), train_scores.std()))
                 self.plot_durations(rewards_collect)
-            self.save_model(double_dqn, iterator + 1, self.eval_model)
+            self.save_model(double_dqn, iterator + 1, self.target_model)
         self.plot_save(rewards_collect)
         self.game.close()
 
@@ -167,15 +182,15 @@ class DDQN(DQN):
         self.game = init_doom(scenarios=self.map, visable=True)
         for _ in range(watch_step_per_epoch):
             self.game.new_episode()
+            state = self.preprocess(self.game.get_state().screen_buffer)
+            state = self.frames_reshape(state)
             while not self.game.is_episode_finished():
                 state = self.preprocess(self.game.get_state().screen_buffer)
-                state = state.reshape([1, 1, resolution[0], resolution[1]])
+                state = self.frames_reshape(state)
                 action_index = self.choose_action(state, watch_flag=True)
-                self.game.set_action(self.action_available[action_index])
-
-                reward = self.game.advance_action()
+                self.game.make_action(self.action_available[action_index])
                 sleep(0.05)
-                #reward = self.game.make_action(self.action_available[action_index])
+                # reward = self.game.make_action(self.action_available[action_index])
             sleep(1.0)
             score = self.game.get_total_reward()
             print("Total score: ", score)

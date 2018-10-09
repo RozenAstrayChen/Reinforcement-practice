@@ -35,13 +35,12 @@ class DQN(Process):
         actions = [list(a) for a in it.product([0, 1], repeat=n)]
         # actions = np.identity(3, dtype=int).tolist()
         self.action_available = actions
-        # self.model = Net(len(actions)).to(device)
         self.model = Net(len(actions)).to(device)
         # loss
         self.criterion = nn.MSELoss().cuda()
         # bp
-        self.optimizer = torch.optim.Adam(self.model.parameters(),
-                                          learning_rate)
+        self.optimizer = torch.optim.RMSprop(self.model.parameters(),
+                                             learning_rate)
         self.eps = epsilon
         self.memory = ReplayMemory(replay_memory_size)
 
@@ -58,7 +57,7 @@ class DQN(Process):
                 self.game.new_episode()
                 s1 = self.stack_frames(
                     self.game.get_state().screen_buffer, True)
-                s1 = self.frames_reshape(s1)
+                # s1 = self.frames_reshape(s1)
 
                 while not self.game.is_episode_finished():
                     action_index = self.choose_action(s1)
@@ -69,16 +68,16 @@ class DQN(Process):
                     if not isterminal:
                         s2 = self.stack_frames(
                             self.game.get_state().screen_buffer, False)
-                        s2 = self.frames_reshape(s2)
+                        self.memory.add_transition(
+                            (s1, action_index, reward, s2, isterminal))
                         s1 = s2
                     else:
                         # put none to stack
                         s2 = self.stack_frames(
                             np.zeros([resolution[0], resolution[1]]), False)
-                        s2 = self.frames_reshape(s2)
+                        self.memory.add_transition(
+                            (s1, action_index, reward, s2, isterminal))
 
-                    self.memory.add_transition(s1, action_index, s2,
-                                               isterminal, reward)
                     loss = self.learn_from_memory()
                 train_episodes_finished += 1
                 if train_episodes_finished % 20 == 0:
@@ -112,15 +111,14 @@ class DQN(Process):
             state = self.frames_reshape(state)
 
             while not self.game.is_episode_finished():
-                action_index = self.choose_action(state, watch_flag=True)
                 state = self.stack_frames(
-                    self.game.get_state().screen_buffer, True)
+                    self.game.state().screen_buffer, False)
                 state = self.frames_reshape(state)
+                action_index = self.choose_action(state, watch_flag=True)
 
                 self.game.make_action(self.action_available[action_index])
 
                 # reward =
-                # self.game.make_action(self.action_available[action_index])
             sleep(1.0)
             score = self.game.get_total_reward()
             print("Total score: ", score)
@@ -211,10 +209,10 @@ class DQN(Process):
             # using detach is not do forward propagation
             return action_index
         else:
+            state = self.frames_reshape(state)
             q = self.get_q(state)
             m, index = torch.max(q, 1)
             action = index.data.cpu().numpy()[0]
-            # print('eps == ' ,self.eps,'action ==',action)
             return action
 
     def got_feature(self, state):
@@ -247,21 +245,18 @@ class DQN(Process):
     def learn_from_memory(self):
         # decrease explore rate
         self.exploration_rate()
-        if self.memory.size > batch_size:
-            s1, a, s2, isterminal, r = self.memory.get_sample(batch_size)
-            # reshape to [1,4,height,width]
-            s1 = s1.reshape(
-                [batch_size, 4, resolution[0], resolution[1]])
-            s2 = s2.reshape(
-                [batch_size, 4, resolution[0], resolution[1]])
+        if len(self.memory.buffer) > batch_size:
+            batch = self.memory.get_sample(batch_size)
+            s1 = np.array([each[0] for each in batch], ndmin=3)
+            a = np.array([each[1] for each in batch])
+            r = np.array([each[2] for each in batch])
+            s2 = np.array([each[3] for each in batch], ndmin=3)
+            isterminal = np.array([each[4] for each in batch])
             # convert numpy type
             target_q = self.get_q(s1).cpu().data.cpu().numpy()
-            print('target', target_q.shape)
             # get state+1 value
             predict_q = self.get_q(s2).data.cpu().numpy()
-            print('predict', predict_q.shape)
             predict_q = np.max(predict_q, axis=1)
-            # q_target = r + gamma*(q_next(1)[0].view(batch_size, 1))
             target_q[np.arange(target_q.shape[0]),
                      a] = r + gamma * (1 - isterminal) * predict_q
             return self.propagation(s1, target_q)
@@ -274,12 +269,3 @@ class DQN(Process):
 
         if self.eps > min_eps:
             self.eps *= dec_eps
-
-
-'''
-trainer = DQN()
-trainer.perform_learning_step(load=False, iterators=1)
-trainer.watch_model(1)
-# trainer.visualization_fliter(1)
-# plot_kernels(trainer.model.conv1)
-'''
