@@ -21,9 +21,7 @@ from memory import *
 from net.q_net import Net
 from process import Process
 from tools.visual import *
-print("GPU is ->", torch.cuda.is_available())
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(torch.cuda.get_device_name(0))
+
 '''
 Double q need two weight
 Fisrst weight is using chose action that dont need update
@@ -40,8 +38,8 @@ class DDQN(DQN):
         n = self.game.get_available_buttons_size()
         actions = [list(a) for a in it.product([0, 1], repeat=n)]
 
-        self.target_model = Net(len(actions)).to(device)
-        self.eval_model = Net(len(actions)).to(device)
+        self.target_model = Net(len(actions)).to(self.device)
+        self.eval_model = Net(len(actions)).to(self.device)
         self.optimizer = torch.optim.RMSprop(self.target_model.parameters(),
                                              learning_rate)
         self.update_batch = 100
@@ -61,13 +59,13 @@ class DDQN(DQN):
     def get_eval(self, state):
         state = torch.from_numpy(state)
         state = Variable(state)
-        state = state.to(device)
+        state = state.to(self.device)
         return self.eval_model(state)
 
     def get_target(self, state):
         state = torch.from_numpy(state)
         state = Variable(state)
-        state = state.to(device)
+        state = state.to(self.device)
         return self.target_model(state)
 
     def learn_from_memory(self):
@@ -88,7 +86,7 @@ class DDQN(DQN):
             predict_q = np.max(predict_q, axis=-1)
             target_q[np.arange(target_q.shape[0]),
                      a] = r + gamma * (1 - isterminal) * predict_q
-            self.propagation(s1, target_q)
+            return self.propagation(s1, target_q)
 
     def propagation(self, state, target_q):
         s1 = torch.from_numpy(state)
@@ -133,11 +131,14 @@ class DDQN(DQN):
                 train_scores = []
                 s1 = self.preprocess(self.game.get_state().screen_buffer)
                 s1 = self.frames_reshape(s1)
-                while not self.game.is_episode_finished():
+                for _ in range(learning_step_per_epoch):
 
                     action_index = self.choose_action(s1)
-                    reward = self.game.make_action(
-                        self.action_available[action_index], frame_repeat)
+                    self.game.set_action(
+                        self.action_available[action_index])
+                    # frame skip
+                    self.game.advance_action(frame_skip)
+                    reward = self.game.get_last_reward()
 
                     isterminal = self.game.is_episode_finished()
                     if not isterminal:
@@ -154,7 +155,7 @@ class DDQN(DQN):
                         self.memory.add_transition((s1, action_index, reward,
                                                     s2, isterminal))
 
-                    self.learn_from_memory()
+                    loss = self.learn_from_memory()
                     # clone target net wights to eval
                     if self.counter % self.update_batch == 0:
                         self.eval_model.load_state_dict(
@@ -164,14 +165,14 @@ class DDQN(DQN):
                         train_episodes_finished += 1
                         train_scores.append(self.game.get_total_reward())
                         break
-                if (train_episodes_finished % 50 == 0):
+                if (train_episodes_finished % 20 == 0):
                     print("%d training episodes played." %
                           train_episodes_finished)
                     rewards_collect.append(train_scores)
                     train_scores = np.array(train_scores)
                     print("Results: mean: %.1f +/- %.1f," %
                           (train_scores.mean(), train_scores.std()))
-                self.plot_durations(rewards_collect)
+                    self.plot_durations(rewards_collect)
             self.save_model(double_dqn, iterator + 1, self.target_model)
         self.plot_save(rewards_collect)
         self.game.close()
@@ -188,7 +189,8 @@ class DDQN(DQN):
                 state = self.preprocess(self.game.get_state().screen_buffer)
                 state = self.frames_reshape(state)
                 action_index = self.choose_action(state, watch_flag=True)
-                self.game.make_action(self.action_available[action_index])
+                self.game.set_action(self.action_available[action_index])
+                self.game.advance_action(frame_skip)
                 sleep(0.05)
                 # reward = self.game.make_action(self.action_available[action_index])
             sleep(1.0)

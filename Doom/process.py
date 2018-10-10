@@ -39,7 +39,7 @@ class Process:
         plt.clf()
         durations_t = torch.FloatTensor(rewards)
         plt.title('Training...')
-        plt.xlabel('Episode')
+        plt.xlabel('Episode*20')
         plt.ylabel('Duration')
         plt.plot(durations_t.numpy())
         # Take 100 episode averages and plot them too
@@ -97,7 +97,8 @@ class Process:
         normalized_frame = frame / 255.0
         # plt.imshow(frame,cmap='gray')
         # plt.show()
-        normalized_frame = skimage.transform.resize(normalized_frame, resolution)
+        normalized_frame = skimage.transform.resize(
+            normalized_frame, resolution)
         normalized_frame = normalized_frame.astype(np.float32)
         return normalized_frame
     '''
@@ -123,7 +124,7 @@ class Process:
         return stacked_state
 
     def frames_reshape(self, frame):
-        return frame.reshape([3,resolution[0], resolution[1]])
+        return frame.reshape([3, resolution[0], resolution[1]])
 
     def plot_kernels(self, tensor, layer, num_cols=8, num_rows=6):
         if not tensor.ndim == 4:

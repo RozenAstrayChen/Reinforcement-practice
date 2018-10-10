@@ -33,7 +33,7 @@ elif arg.model == policy_gradient:
     model = Policy(arg.map)
     print('using pg!')
 elif arg.model == actor_cirtic:
-    model = AC(arg.map)
+    model = AC(map=map_d_center)
     print('using ac!')
 
 if arg.train == 1:

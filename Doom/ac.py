@@ -26,11 +26,6 @@ from net.ac_net import ACNet
 from process import *
 from tools.visual import *
 from policy import *
-
-print('GPU is ->', torch.cuda.is_available())
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(torch.cuda.get_device_name(0))
-
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 
 
@@ -39,16 +34,16 @@ class AC(Policy):
     def __init__(self, map=map_health):
         super(AC, self).__init__(map)
         self.map = map
-        self.model = ACNet(len(self.action_available)).to(device)
+        self.model = ACNet(len(self.action_available)).to(self.device)
         self.saved_actions = []
         self.rewards = []
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=learning_rate)
 
     def convert2Tensor(self, state):
-        state = torch.from_numpy(state).type(torch.FloatTensor)
+        state = torch.from_numpy(state)
         state = Variable(state)
-        state = state.to(device)
+        state = state.to(self.device)
         # print(state.shape)
         return self.model(state)
 
@@ -57,6 +52,7 @@ class AC(Policy):
     '''
 
     def choose_action(self, state):
+        state = state.reshape([1, 3, resolution[0], resolution[1]])
         probs, state_value = self.convert2Tensor(state)
         m = Categorical(probs)
         action = m.sample()
@@ -82,13 +78,13 @@ class AC(Policy):
         for (log_prob, value), r in zip(saved_actions, rewards):
             reward = r - value.item()
 
-            log_prob = log_prob.to(device)
-            reward = reward.to(device)
+            log_prob = log_prob.to(self.device)
+            reward = reward.to(self.device)
 
             policy_losses.append(-log_prob * reward)
             value_losses.append(
                 F.smooth_l1_loss(value[0],
-                                 torch.tensor([r]).to(device)))
+                                 torch.tensor([r]).to(self.device)))
         self.optimizer.zero_grad()
         loss = torch.stack(policy_losses).sum() + torch.stack(
             value_losses).sum()
@@ -107,16 +103,18 @@ class AC(Policy):
         train_episodes_finished = 0
         rewards_collect = []
         for iterator in range(0, iterators):
-            for epoch in range(learning_step_per_epoch):
+            for epoch in range(total_episode):
                 self.game.new_episode()
                 train_scores = []
-                for learning_step in range(1000):
+                for _ in range(learning_step_per_epoch):
                     s1 = self.preprocess(self.game.get_state().screen_buffer)
-                    s1 = s1.reshape([1, 1, resolution[0], resolution[1]])
+                    s1 = self.frames_reshape(s1)
 
                     action_index = self.choose_action(s1)
-                    reward = self.game.make_action(
-                        self.action_available[action_index], frame_repeat)
+                    self.game.set_action(
+                        self.action_available[action_index])
+                    self.game.advance_action(frame_skip)
+                    reward = self.game.get_last_reward()
 
                     self.rewards.append(reward)
 
@@ -126,7 +124,7 @@ class AC(Policy):
 
                         break
                 self.update_policy()
-                if (train_episodes_finished % 50 == 0):
+                if (train_episodes_finished % 20 == 0):
                     print("%d training episodes played." %
                           train_episodes_finished)
                     rewards_collect.append(train_scores)
@@ -146,16 +144,10 @@ class AC(Policy):
             self.game.new_episode()
             while not self.game.is_episode_finished():
                 state = self.preprocess(self.game.get_state().screen_buffer)
-                state = state.reshape([1, 1, resolution[0], resolution[1]])
+                state = self.frames_reshape(state)
                 action_index = self.choose_action(state)
-                if delay is True:
-                    self.show_action(action_index)
-                    sleep(0.5)
-                # print(action_index)
-                # Instead of make_action(a, frame_repeat) in order to make the
-                # animation smooth
                 self.game.set_action(self.action_available[action_index])
-                reward = self.game.advance_action()
+                self.game.advance_action(frame_skip)
 
                 #reward = self.game.make_action(self.action_available[action_index])
             sleep(1.0)

@@ -10,7 +10,7 @@ def init_doom(scenarios=map_basic, visable=False):
     game.load_config(scenarios)
     game.set_window_visible(visable)
     game.set_mode(Mode.PLAYER)
-    #game.set_screen_format(ScreenFormat.GRAY8)
+    # game.set_screen_format(ScreenFormat.GRAY8)
     game.set_screen_format(ScreenFormat.RGB24)
     game.set_screen_resolution(ScreenResolution.RES_640X480)
     # 06

@@ -20,14 +20,17 @@ from memory import *
 from net.q_net import Net
 from process import Process
 from tools.visual import *
-print("GPU is ->", torch.cuda.is_available())
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(torch.cuda.get_device_name(0))
 
 
 class DQN(Process):
 
     def __init__(self, map=map_basic):
+        # using cuda
+        print("GPU is ->", torch.cuda.is_available())
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu")
+        print(torch.cuda.get_device_name(0))
+
         self.game = init_doom(map, visable=False)
         self.map = map
         # find game available action
@@ -35,7 +38,7 @@ class DQN(Process):
         actions = [list(a) for a in it.product([0, 1], repeat=n)]
         # actions = np.identity(3, dtype=int).tolist()
         self.action_available = actions
-        self.model = Net(len(actions)).to(device)
+        self.model = Net(len(actions)).to(self.device)
         # loss
         self.criterion = nn.MSELoss().cuda()
         # bp
@@ -190,7 +193,7 @@ class DQN(Process):
     def get_q(self, state):
         state = torch.from_numpy(state)
         state = Variable(state)
-        state = state.to(device)
+        state = state.to(self.device)
         # print(state.shape)
         return self.model(state)
 
@@ -235,7 +238,7 @@ class DQN(Process):
     def change_cuda(self, state):
         state = torch.from_numpy(state)
         state = Variable(state)
-        state = state.to(device)
+        state = state.to(self.device)
         return state
 
     '''
@@ -267,5 +270,5 @@ class DQN(Process):
 
     def exploration_rate(self):
 
-        if self.eps > min_eps:
+        if self.eps >= min_eps:
             self.eps *= dec_eps

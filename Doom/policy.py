@@ -25,14 +25,16 @@ from net.pg_net import *
 from process import Process
 from tools.visual import *
 
-print("GPU is ->", torch.cuda.is_available())
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(torch.cuda.get_device_name(0))
-
 
 class Policy(Process):
 
     def __init__(self, map=map_health):
+        # using cuda
+        print("GPU is ->", torch.cuda.is_available())
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu")
+        print(torch.cuda.get_device_name(0))
+
         self.map = map
         self.game = init_doom(map, visable=False)
         n = self.game.get_available_buttons_size()
@@ -40,7 +42,7 @@ class Policy(Process):
         #actions = np.identity(3, dtype=int).tolist()
         self.action_available = actions
         #self.model = Net(len(actions)).to(device)
-        self.model = Net(len(actions)).to(device)
+        self.model = Net(len(actions)).to(self.device)
         # bp
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=learning_rate)
@@ -76,7 +78,7 @@ class Policy(Process):
     def convert2Tensor(self, state):
         state = torch.from_numpy(state).type(torch.FloatTensor)
         state = Variable(state)
-        state = state.to(device)
+        state = state.to(self.device)
         # print(state.shape)
         return self.model(state)
 
@@ -120,8 +122,8 @@ class Policy(Process):
         rewards = (rewards - rewards.mean()) / (rewards.std() + self.eps)
 
         for log_prob, reward in zip(self.saved_log_probs, rewards):
-            log_prob = log_prob.to(device)
-            reward = reward.to(device)
+            log_prob = log_prob.to(self.device)
+            reward = reward.to(self.device)
             policy_loss.append(-log_prob * reward)
 
         # else:
