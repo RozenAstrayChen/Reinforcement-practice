@@ -1,0 +1,2 @@
+model_checkpoint_path: "bike.ckpt"
+all_model_checkpoint_paths: "bike.ckpt"
