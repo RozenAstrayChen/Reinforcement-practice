@@ -22,7 +22,7 @@ from process import Process
 from tools.visual import *
 print("GPU is ->", torch.cuda.is_available())
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(torch.cuda.get_device_name(0))
+#print(torch.cuda.get_device_name(0))
 
 
 class Trainer(Process):
@@ -161,7 +161,7 @@ class Trainer(Process):
         print("Loading model from: ", current_name)
         self.model = torch.load(current_name)
 
-    
+
 
 
     '''
@@ -210,7 +210,7 @@ class Trainer(Process):
         return loss
 
     '''
-    convert to tensor data and do forward, 
+    convert to tensor data and do forward,
     and wont do forwad propagation, because is just choice action
     '''
 
@@ -242,7 +242,7 @@ class Trainer(Process):
             #print('eps == ' ,self.eps,'action ==',action)
             return action
 
-    
+
 
     def got_feature(self, state):
         print('-----------split-----------')
