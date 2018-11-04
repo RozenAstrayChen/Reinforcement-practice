@@ -44,6 +44,8 @@ class MLPPolicy(nn.Module):
         logstd = self.logstd.expand_as(mean)
         std = torch.exp(logstd)
         action = torch.normal(mean, std)
+       
+        
 
         # value
         v = self.value_fc1(x)
@@ -67,15 +69,16 @@ class MLPPolicy(nn.Module):
         return v, logprob, dist_entropy
 
 
-if __name__ == '__main__':
-    from torch.autograd import Variable
+'''
+v =  tensor([[-0.1048],
+        [-0.1362]], grad_fn=<ThAddmmBackward>)
+tensor([[ 1.1269,  0.6877],
+        [ 0.2316, -1.0929]], grad_fn=<NormalBackward3>)
+logprob =  tensor([[-2.6890],
+        [-2.4414]], grad_fn=<SumBackward1>)
+mean =  tensor([[ 0.0370, -0.0295],
+        [ 0.0260, -0.0136]], grad_fn=<ThAddmmBackward>)
+Parameter containing:
+tensor([0., 0.], requires_grad=True)
 
-    net = MLPPolicy(3, 2)
-
-    observation = Variable(torch.randn(2, 3))
-    v, action, logprob, mean = net.forward(observation)
-    print('v = ', v)
-    print(action)
-    print('logprob = ', logprob)
-    print('mean = ', mean)
-    print(net.logstd)
+'''
