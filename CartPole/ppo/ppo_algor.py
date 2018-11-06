@@ -35,7 +35,7 @@ def ppo_update(policy,
     obs, actions, logprobs, returns, values = memory
     advantages = returns - values
     advantages = (advantages - advantages.mean()) / advantages.std()
-    print('\nreturns = ',returns , '\nvalue = ', values, '\nadv', advantages)
+
     for update in range(nupdates):
         sampler = BatchSampler(
             SubsetRandomSampler(list(range(advantages.shape[0]))),
@@ -58,6 +58,7 @@ def ppo_update(policy,
 
             sampled_logprobs = sampled_logprobs.view(-1, 1)
             ratio = torch.exp(new_logprob - sampled_logprobs)
+            #ratio = new_logprob / sampled_logprobs
 
             sampled_advs = sampled_advs.view(-1, 1)
             surrogate1 = ratio * sampled_advs
@@ -69,6 +70,7 @@ def ppo_update(policy,
             value_loss = F.mse_loss(new_value, sampled_returns)
 
             loss = policy_loss + value_loss - coeff_entropy * dist_entropy
+            #print('loss = ', loss)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -96,17 +98,15 @@ def generate_trajectory(env,
     while not (nstep == max_step):
         if done:
             obs = env.reset()
-        if is_render:
-            env.render()
-        if obs_fn is not None:
-            obs = obs_fn(obs)
-        obs = Variable(torch.from_numpy(obs[np.newaxis])).float().cuda()
+       
 
-        value, action, logprob, mean = policy(obs)
+        obs = Variable(torch.from_numpy(obs[np.newaxis])).float().cuda()
+        value, action, logprob = policy.action(obs)
         value, action, logprob = value.data.cpu().numpy()[
             0], action.data.cpu().numpy()[0], logprob.data.cpu().numpy()[0]
         
-        next_obs, reward, done, _ = env.step(action)
+        next_obs, reward, done, _ = env.step(action[0])
+        
         observations.append(obs.data.cpu().numpy()[0])
         rewards.append(reward)
         logprobs.append(logprob)
@@ -116,8 +116,9 @@ def generate_trajectory(env,
 
         obs = next_obs
         nstep += 1
+        
         if progress:
-            print('\r{}/{}'.format(nstep, max_step), flush=True, end='')
+            print('\r{}/{}'.format(nstep, r_episode), flush=True, end='')
         
     if done:
         last_value = 0.0
@@ -125,7 +126,7 @@ def generate_trajectory(env,
         if obs_fn is not None:
             obs = obs_fn(obs)
         obs = Variable(torch.from_numpy(obs[np.newaxis])).float().cuda()
-        value, action, logprob, mean = policy(obs)
+        value, action, logprob = policy.action(obs)
         last_value = value.data[0][0]
     observations = np.asarray(observations)
     rewards = np.asarray(rewards)
@@ -135,3 +136,26 @@ def generate_trajectory(env,
     actions = np.asarray(actions)
     returns = calculate_returns(rewards, dones, last_value)
     return observations, actions, logprobs, returns, values, rewards
+
+
+def test_result(env,
+                policy,
+                max_step):
+    nstep = 0
+    obs = env.reset()
+    collect_rwards = 0
+    while not (nstep == max_step):
+        env.render()
+
+        obs = Variable(torch.from_numpy(obs[np.newaxis])).float().cuda()
+
+        value, action, logprob = policy.action(obs)
+        action = action.data.cpu().numpy()[0]
+        next_obs, reward, done, _ = env.step(action[0])
+        collect_rwards += reward
+        obs = next_obs
+        nstep += 1
+
+    return collect_rwards
+
+

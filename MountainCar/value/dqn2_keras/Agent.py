@@ -21,7 +21,7 @@ class Agent:
             for time_t in range(500):
                 # self.env.render()
                 action = self.agent.choose(state)
-
+                print(action)
                 state_, reward, done, _ = self.env.step(action)
 
                 if state_[0] >= 0.1:
