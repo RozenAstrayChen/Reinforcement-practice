@@ -58,7 +58,6 @@ def ppo_update(policy,
 
             sampled_logprobs = sampled_logprobs.view(-1, 1)
             ratio = torch.exp(new_logprob - sampled_logprobs)
-            #ratio = new_logprob / sampled_logprobs
 
             sampled_advs = sampled_advs.view(-1, 1)
             surrogate1 = ratio * sampled_advs

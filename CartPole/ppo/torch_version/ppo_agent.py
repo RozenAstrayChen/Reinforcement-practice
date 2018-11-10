@@ -17,7 +17,7 @@ if __name__ == '__main__':
     env_name = 'CartPole-v0'
     coeff_entropy = 1e-4
     lr = 2e-4
-    mini_batch_size = 32
+    mini_batch_size = 64
     horizon = 2048
     nupdates = 5
     nepoch = 4000

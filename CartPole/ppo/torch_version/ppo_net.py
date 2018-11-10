@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 #from torch.distributions import Categorical
+from torch.autograd import Variable
 from distrbutions import Categorical
 from torch.nn import functional as F
 
