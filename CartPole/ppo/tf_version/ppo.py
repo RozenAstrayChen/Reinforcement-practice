@@ -141,7 +141,9 @@ class Agent():
             r_tau = r_tau * self.gamma + r_buffer[index]
             self.r_buffer[index] = r_tau
         # Calculate adv.
+        print('r_buffer : ', self.r_buffer)
         adv_buffer = self.session.run(self.advantage, {self.s: self.s_buffer, self.r: self.r_buffer})
+        print('adv : ', adv_buffer)
         # Minimize loss.
         [
             self.session.run([self.a_optimizer, self.c_optimizer], {
