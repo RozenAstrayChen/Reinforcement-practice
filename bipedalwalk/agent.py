@@ -44,8 +44,17 @@ if __name__ == '__main__':
 
         writer.add_scalar('ppo/mean_reward', np.mean(rewards), global_step=e)
         memory = (observations, actions, logprobs, returns[:-1], values)
-        ppo_update(policy, opt, mini_batch_size, memory, nupdates,
-                   coeff_entropy=coeff_entropy, clip_value=clip_value)
-        print('Episode {}, reward is {}'.format(e, rewards.sum()))
-        # save every epoch
-        torch.save(policy.state_dict(), policy_path + '/policy.pth')
+        value_loss, policy_loss, dist_entropy = ppo_update(
+            policy,
+            opt,
+            mini_batch_size,
+            memory,
+            nupdates,
+            coeff_entropy=coeff_entropy,
+            clip_value=clip_value)
+        if e % 20 == 0:
+            print(
+                'Episode {}, reward is {} \nvalue_loss : {} \t\t policy_loss : {} \t\t entropy : {}\n'.
+                format(e, rewards.sum(), value_loss, policy_loss, dist_entropy))
+            # save every epoch
+            torch.save(policy.state_dict(), policy_path + '/policy.pth')

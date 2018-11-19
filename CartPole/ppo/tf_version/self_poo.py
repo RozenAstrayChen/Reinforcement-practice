@@ -12,11 +12,14 @@ class Agent():
         self.a_space = a_space
         self.s_space = s_space
         self.lr = 2e-4
-        self.train_episodes = 10000
+        self.train_episodes = 5000
         self.gamma = 0.99
         self.epsilon = 0.2
-        self.batch = 64
-        self.rollout = Rollout()
+        self.horizen = 128
+        self.batch = 32
+        self.rollout = Rollout(self.batch)
+        self.entropy_coff = 0.02
+        self.value_coff = 1
 
         # input tf variable
         self._init_input()
@@ -83,9 +86,10 @@ class Agent():
             self.update_params = [
                 tf.assign(old, now) for old, now in zip(params_old, params)
             ]
-
-        with tf.variable_scope('advatage'):
+        '''
+        with tf.variable_scope('advantage'):
             self.adv = self.r_in - self.v
+        '''
 
         with tf.variable_scope('loss'):
 
@@ -116,9 +120,10 @@ class Agent():
             # Critic Loss
             self.c_loss = tf.reduce_mean(tf.square(self.adv_in))
             # dist entropy
-            self.entropy = -tf.reduce_sum(self.a_prob * tf.log(self.a_prob + 1e-5))  # encourage exploration
+            self.entropy = tf.reduce_mean(
+                self.a_prob * tf.log(self.a_prob))  # encourage exploration
 
-            self.loss = self.a_loss + 0.5 * (self.c_loss) + self.entropy * 0.1
+            self.loss = self.a_loss + self.c_loss - self.entropy * self.entropy_coff
 
         with tf.variable_scope('optimizer'):
             self.optimizer = tf.train.AdamOptimizer(self.lr).minimize(
@@ -133,21 +138,32 @@ class Agent():
     '''
 
     def get_v(self, s):
-        v = self.sess.run([self.v_old], feed_dict={self.s_in: [s]})
+        v = self.sess.run([self.v], feed_dict={self.s_in: s})
         return v[0][0]
 
     def choose_action(self, s):
-        _, a_prob = self.sess.run(
-            [self.v, self.a_prob], feed_dict={self.s_in: [s]})
+        a_prob = self.sess.run(self.a_prob, feed_dict={self.s_in: [s]})
         a = np.random.choice(range(a_prob.shape[1]), p=a_prob.ravel())
 
         return a
-    
+
+    def calculate_returns(self, rewards, dones, last_value, gamma=0.99):
+        rewards = np.array(rewards)
+        dones = np.array(dones)
+        # create nparray
+        returns = np.zeros(rewards.shape[0] + 1)
+        returns[-1] = last_value
+        dones = 1 - dones
+        for i in reversed(range(rewards.shape[0])):
+            returns[i] = gamma * returns[i + 1] * dones[i] + rewards[i]
+
+        return returns
+
     '''
     plt loss
     '''
-    def plot_loss(self, reward, loss, a_loss, c_loss, entropy):
 
+    def plot_loss(self, reward, a_loss, c_loss, entropy):
 
         plt.figure(1)
         plt.clf()
@@ -155,91 +171,103 @@ class Agent():
         plt.xlabel('Episode*10')
         plt.ylabel('Duration')
         plt.plot()
-        plt.plot(reward, color='yellow', label='reward')
-        plt.plot(loss, color='red', label='loss')
+        plt.plot(reward, color='red', label='reward')
         plt.plot(a_loss, color='green', label='a_loss')
         plt.plot(c_loss, color='blue', label='c_loss')
         plt.plot(entropy, color='black', label='entropy')
         plt.legend()
         plt.pause(0.001)  # pause a bit so that plots are updated
 
+    def plot_saved(self, reward, a_loss, c_loss, entropy):
+        plt.figure(1)
+        plt.clf()
+        plt.title('Loss')
+        plt.xlabel('Episode*10')
+        plt.ylabel('Duration')
+        plt.plot()
+        plt.plot(reward, color='red', label='reward')
+        plt.plot(a_loss, color='green', label='a_loss')
+        plt.plot(c_loss, color='blue', label='c_loss')
+        plt.plot(entropy, color='black', label='entropy')
+        name = './ppo' + '_loss' + '.jpg'
+        plt.savefig(name)
 
-    def train(self, ):
-        #update old theta
+    def train(self, memory):
+        # First, update old theta
         self.sess.run(self.update_params)
-
-        s, a, r = self.rollout.sample()
-
-        adv = self.sess.run(self.adv, {self.s_in: s, self.r_in: r})
-        #adv = np.array(adv)
+        # Second calculate advantage
+        s = np.array(memory.s)
+        returns = np.array(memory.r)
+        #newaxis
+        returns = returns[:, np.newaxis]
+        predicts = self.get_v(s)
+        #print('ret', returns.shape, '\tand one is', returns[0])
+        #print('predicts', predicts.shape, '\tand one is', predicts[0])
+        adv = returns - predicts
         adv = adv.ravel()
-        #print('adv shape ', adv.shape)
+        adv = (adv - adv.mean()) / adv.std()
 
-        dict = {self.s_in: s, self.r_in: r, self.a_in: a, self.adv_in: adv}
-
+        memory.adv_replace(adv)
+        # update N times
         for _ in range(5):
-            _ ,loss, a_loss, c_loss, entropy = self.sess.run(
+            # sample data
+            s, a, adv = memory.sample()
+            adv = adv.ravel()
+
+            dict = {self.s_in: s, self.a_in: a, self.adv_in: adv}
+
+            _, loss, a_loss, c_loss, entropy = self.sess.run(
                 [
                     self.optimizer, self.loss, self.a_loss, self.c_loss,
                     self.entropy
                 ],
                 feed_dict=dict)
-        
-        self.rollout.clean()
 
-        return loss, a_loss, c_loss, entropy
-
+            #self.sess.run([self.optimizer], feed_dict=dict)
     def run(self):
-        step = 0
-        reward_collect = []
-        loss_collect = []
-        a_loss_collect = []
-        c_loss_collect = []
-        entropy_collect = []
-
         for episode in range(self.train_episodes):
-            r_collect = []
             s = self.env.reset()
-            while True:
-                step += 1
+            done = False
+            for t in range(self.horizen):
+                if done:
+                    s = self.env.reset()
+
                 a = self.choose_action(s)
                 n_s, r, done, _ = self.env.step(a)
-                r_collect.append(r)
-
-                self.rollout.append(s, a, r)
-                s = n_s
-                # Batch update
-                if (step + 1) % self.batch == 0 or done:
-                    v_s_ = self.get_v(n_s)
-                    discount_r = []
-                    for r in self.rollout.r[::-1]:
-                        v_s_ = r + self.gamma * v_s_
-                        discount_r.append(v_s_)
-                    discount_r.reverse()
-                    # update
-                    self.rollout.r = discount_r
-                    loss, a_loss, c_loss, entropy = self.train()
-
                 if done:
-                    break
+                    r = -5
+                self.rollout.append(s, a, r, n_s, done)
+                s = n_s
+
+            if done:
+                last_value = 0
+            else:
+                s = s[np.newaxis, :]
+                last_value = self.get_v(s)
+
+            returns = self.calculate_returns(self.rollout.r, self.rollout.done,
+                                             last_value)
+            self.rollout.r = returns[:-1]
+            self.train(self.rollout)
+            self.rollout.flush()
             '''
             learning 
             '''
 
             if episode % 50 == 0:
-                print('episode : ', episode, 'reward :', sum(r_collect))
-                reward_collect.append(sum(r_collect))
-                loss_collect.append(loss)
-                a_loss_collect.append(a_loss)
-                c_loss_collect.append(c_loss)
-                entropy_collect.append(entropy)
-                self.plot_loss(reward_collect, loss_collect, a_loss_collect, c_loss_collect, entropy_collect)
-
-
                 
-            #print('loss : ', loss)
-            if episode >= 5000:
-                self.env.render()
+                r_steps = 0
+                s = self.env.reset()
+                while True:
+                    self.env.render()
+                    a = self.choose_action(s)
+                    n_s, r, done, _ = self.env.step(a)
+                    r_steps += r
+                    s = n_s
+                    if done:
+                        print('episode = {} ; get_reward = {}'.format(
+                            episode, r_steps))
+                        break
 
 
 # Make env.

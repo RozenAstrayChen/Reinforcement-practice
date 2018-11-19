@@ -35,7 +35,7 @@ def ppo_update(policy,
     obs, actions, logprobs, returns, values = memory
     advantages = returns - values
     advantages = (advantages - advantages.mean()) / advantages.std()
-    print('\nreturns = ',returns , '\nvalue = ', values, '\nadv', advantages)
+    #print('\nreturns = ',returns , '\nvalue = ', values, '\nadv', advantages)
     for update in range(nupdates):
         sampler = BatchSampler(
             SubsetRandomSampler(list(range(advantages.shape[0]))),

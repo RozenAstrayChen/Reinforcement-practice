@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import gym
+import matplotlib.pyplot as plt
 
 np.random.seed(2)
 tf.set_random_seed(2)  # reproducible
@@ -8,12 +9,20 @@ tf.set_random_seed(2)  # reproducible
 # Superparameters
 OUTPUT_GRAPH = False
 MAX_EPISODE = 1000
-DISPLAY_REWARD_THRESHOLD = 800  # renders environment if total episode reward is greater then this threshold
+DISPLAY_REWARD_THRESHOLD = 200  # renders environment if total episode reward is greater then this threshold
 MAX_EP_STEPS = 1000  # maximum time step in one episode
 RENDER = False  # rendering wastes time
 GAMMA = 0.9  # reward discount in TD error
 LR_A = 0.001  # learning rate for actor
 LR_C = 0.01  # learning rate for critic
+
+env = gym.make('CartPole-v0')
+env.seed(1)  # reproducible
+env = env.unwrapped
+
+N_F = env.observation_space.shape[0]
+N_A = env.action_space.n
+
 
 env = gym.make('CartPole-v0')
 env.seed(1)  # reproducible
@@ -71,8 +80,10 @@ class Actor(object):
 
     def learn(self, s, a, td):
         s = s[np.newaxis, :]
+        print('s = ', s.shape, '\na = ', a, '\ntd = ', td)
         feed_dict = {self.s: s, self.a: a, self.td_error: td}
         _, exp_v = self.sess.run([self.train_op, self.exp_v], feed_dict)
+        print('exp_v = ', exp_v)
         return exp_v
 
     def choose_action(self, s):
@@ -143,7 +154,7 @@ class Critic(object):
 
 
 sess = tf.Session()
-
+collect_rewards = []
 actor = Actor(sess, n_features=N_F, n_actions=N_A, lr=LR_A)
 critic = Critic(
     sess, n_features=N_F, lr=LR_C
@@ -179,14 +190,24 @@ for i_episode in range(MAX_EPISODE):
 
         if done or t >= MAX_EP_STEPS:
             ep_rs_sum = sum(track_r)
-            '''
+            collect_rewards.append(ep_rs_sum)
             if 'running_reward' not in globals():
                 running_reward = ep_rs_sum
             else:
                 running_reward = running_reward * 0.95 + ep_rs_sum * 0.05
-            '''
-            if i_episode > DISPLAY_REWARD_THRESHOLD:
+
+            if i_episode > 400:
                 RENDER = True  # rendering
 
             print("episode:", i_episode, "  reward:", int(ep_rs_sum))
             break
+
+plt.figure(2)
+plt.clf()
+plt.title('Training...')
+plt.xlabel('Episode')
+plt.ylabel('Origin')
+plt.plot(collect_rewards)
+#plt.show()
+plt.savefig('./improve.jpg')
+

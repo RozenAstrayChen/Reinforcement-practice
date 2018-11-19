@@ -33,9 +33,12 @@ def ppo_update(policy,
                clip_value=0.2,
                writer=None):
     obs, actions, logprobs, returns, values = memory
+    print('ret shape', returns.shape)
+    print('value shape', values.shape)
     advantages = returns - values
     advantages = (advantages - advantages.mean()) / advantages.std()
-
+    print(advantages.shape)
+    print(advantages)
     for update in range(nupdates):
         sampler = BatchSampler(
             SubsetRandomSampler(list(range(advantages.shape[0]))),
@@ -134,6 +137,9 @@ def generate_trajectory(env,
     values = np.asarray(values)
     actions = np.asarray(actions)
     returns = calculate_returns(rewards, dones, last_value)
+    print('obs', observations.shape)
+    print('ret', returns.shape)
+    print('value', values.shape)
     return observations, actions, logprobs, returns, values, rewards
 
 
