@@ -24,12 +24,6 @@ N_F = env.observation_space.shape[0]
 N_A = env.action_space.n
 
 
-env = gym.make('CartPole-v0')
-env.seed(1)  # reproducible
-env = env.unwrapped
-
-N_F = env.observation_space.shape[0]
-N_A = env.action_space.n
 
 
 class Actor(object):
@@ -70,9 +64,10 @@ class Actor(object):
                 name='acts_prob')
 
         with tf.variable_scope('exp_v'):
-            log_prob = tf.log(self.acts_prob[0, self.a])
+            self.log_prob = tf.log(self.acts_prob[0, self.a])
+            #self.log_prob = self.acts_prob
             self.exp_v = tf.reduce_mean(
-                log_prob * self.td_error)  # advantage (TD_error) guided loss
+                self.log_prob * self.td_error)  # advantage (TD_error) guided loss
 
         with tf.variable_scope('train'):
             self.train_op = tf.train.AdamOptimizer(lr).minimize(
@@ -80,10 +75,11 @@ class Actor(object):
 
     def learn(self, s, a, td):
         s = s[np.newaxis, :]
-        print('s = ', s.shape, '\na = ', a, '\ntd = ', td)
+        #print('s = ', s.shape, '\na = ', a, '\ntd = ', td)
         feed_dict = {self.s: s, self.a: a, self.td_error: td}
-        _, exp_v = self.sess.run([self.train_op, self.exp_v], feed_dict)
-        print('exp_v = ', exp_v)
+        _, exp_v, log = self.sess.run([self.train_op, self.exp_v, self.log_prob], feed_dict)
+        #print('exp_v = ', exp_v)
+
         return exp_v
 
     def choose_action(self, s):
@@ -145,12 +141,12 @@ class Critic(object):
         s, s_ = s[np.newaxis, :], s_[np.newaxis, :]
 
         v_ = self.sess.run(self.v, {self.s: s_})
-        td_error, _ = self.sess.run([self.td_error, self.train_op], {
+        td_error, _, loss = self.sess.run([self.td_error, self.train_op, self.loss], {
             self.s: s,
             self.v_: v_,
             self.r: r
         })
-        return td_error
+        return td_error, loss[0,0]
 
 
 sess = tf.Session()
@@ -163,7 +159,7 @@ critic = Critic(
 sess.run(tf.global_variables_initializer())
 
 if OUTPUT_GRAPH:
-    tf.summary.FileWriter("logs/", sess.graph)
+    tf.summary.FileWriter("origin_logs/", sess.graph)
 
 for i_episode in range(MAX_EPISODE):
     s = env.reset()
@@ -180,10 +176,11 @@ for i_episode in range(MAX_EPISODE):
 
         track_r.append(r)
 
-        td_error = critic.learn(
+        td_error, c_loss = critic.learn(
             s, r, s_)  # gradient = grad[r + gamma * V(s_) - V(s)]
-        actor.learn(s, a,
+        exp = actor.learn(s, a,
                     td_error)  # true_gradient = grad[logPi(s,a) * td_error]
+        
 
         s = s_
         t += 1
@@ -198,7 +195,7 @@ for i_episode in range(MAX_EPISODE):
 
             if i_episode > 400:
                 RENDER = True  # rendering
-
+            print(-exp + c_loss)
             print("episode:", i_episode, "  reward:", int(ep_rs_sum))
             break
 

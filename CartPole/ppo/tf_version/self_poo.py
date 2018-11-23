@@ -231,7 +231,7 @@ class Agent():
             for t in range(self.horizen):
                 if done:
                     s = self.env.reset()
-
+                
                 a = self.choose_action(s)
                 n_s, r, done, _ = self.env.step(a)
                 if done:
@@ -240,6 +240,7 @@ class Agent():
                 s = n_s
 
             if done:
+                
                 last_value = 0
             else:
                 s = s[np.newaxis, :]
