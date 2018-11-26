@@ -14,21 +14,8 @@ import matplotlib.pyplot as plt
 use_cuda = torch.cuda.is_available()
 device   = torch.device("cuda" if use_cuda else "cpu")
 
-from common.multiprocessing_env import SubprocVecEnv
 
-num_envs = 16
 env_name = "CartPole-v0"
-
-def make_env():
-    def _thunk():
-        env = gym.make(env_name)
-        return env
-
-    return _thunk
-
-envs = [make_env() for i in range(num_envs)]
-envs = SubprocVecEnv(envs)
-
 env = gym.make(env_name)
 
 
@@ -55,7 +42,7 @@ class ActorCritic(nn.Module):
         return dist, value
 
 
-def plot((frame_idx , rewards):
+def plot(frame_idx , rewards):
     clear_output(True)
     plt.figure(figsize=(20,5))
     plt.subplot(131)
@@ -81,14 +68,15 @@ def compute_returns(next_value, rewards, masks, gamma=0.99):
     R = next_value
     reutrns = []
     for step in reversed(range(len(rewards))):
+        print(type(rewards[1]))
         R = rewards[step] + gamma * R * masks[step]
         returns.insert(0, R)
     print('rewards = ', rewards)
     print('returns =', returns)
     return reutrns
 
-num_inputs  = envs.observation_space.shape[0]
-num_outputs = envs.action_space.n
+num_inputs  = env.observation_space.shape[0]
+num_outputs = env.action_space.n
 
 #Hyper params:
 hidden_size = 256
@@ -102,7 +90,7 @@ max_frames   = 20000
 frame_idx    = 0
 test_rewards = []
 
-state = envs.reset()
+state = env.reset()
 
 while frame_idx < max_frames:
     log_probs = []
@@ -112,19 +100,20 @@ while frame_idx < max_frames:
     entropy = 0
 
     for _ in range(num_steps):
-        state = torch.FloatTensor(state).to(device)
+        state = torch.FloatTensor([state]).to(device)
         dist, value = model(state)
 
         action = dist.sample()
-        next_state, reward, done, _= envs.step(action.cpu().numpy())
+        next_state, reward, done, _= env.step(action.cpu().numpy()[0])
+
 
         log_prob = dist.log_prob(action)
         entropy += dist.entropy().mean()
 
         log_probs.append(log_prob)
         values.append(value)
-        rewards.append(torch.FloatTensor(reward).unsqueeze(1).to(device))
-        masks.append(torch.FloatTensor(1 - done).unsqueeze(1).to(device))
+        rewards.append(torch.from_numpy(np.array(reward)).to(device))
+        masks.append(torch.from_numpy(np.array(1 - done)).to(device))
 
         state = next_state
         frame_idx += 1
@@ -133,7 +122,7 @@ while frame_idx < max_frames:
             test_rewards.append(np.mean([test_env() for _ in range(10)]))
             plot(frame_idx, test_rewards)
     
-    next_state = torch.FloatTensor(next_state).to(device)
+    next_state = torch.FloatTensor([next_state]).to(device)
     _, next_value = model(next_state)
     returns = compute_returns(next_value, rewards, masks)
     
